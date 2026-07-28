@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LA NORIA">
+<meta name="theme-color" content="#0b3d5c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230b3d5c'/%3E%3Ctext x='50' y='68' font-size='55' text-anchor='middle'%3E%F0%9F%92%A7%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>LA NORIA</title>
+<style>
+  :root {
+    --azul-hondo: #0b3d5c;
+    --azul-medio: #1a6fa8;
+    --celeste: #6fc3e0;
+    --arena: #f4f1ea;
+    --naranja: #e08a3e;
+    --rojo-deuda: #c0392b;
+    --verde-pago: #2e8b57;
+    --texto: #12303f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    background: var(--arena);
+    color: var(--texto);
+    padding-bottom: 90px;
+  }
+  header {
+    background: linear-gradient(135deg, var(--azul-hondo), var(--azul-medio));
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 8px;
+  }
+  .topbar .icon-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2em;
+    padding: 4px 5px;
+    line-height: 1;
+  }
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 4px 10px 12px;
+  }
+  .tab-btn {
+    flex: 1;
+    max-width: 160px;
+    padding: 10px 4px;
+    text-align: center;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    border-radius: 8px;
+    font-size: 0.88em;
+    color: white;
+    opacity: 0.75;
+  }
+  .tab-btn.active {
+    background: var(--naranja);
+    opacity: 1;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .view { display: none; padding: 14px; }
+  .view.active { display: block; }
+  .card {
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border-left: 5px solid #ddd;
+  }
+  .card.tiene-deuda { border-left-color: #c0392b; }
+  .card.al-dia { border-left-color: #2e8b57; }
+  .card h3 { margin: 0 0 6px; font-size: 1.05em; }
+  .row { display: flex; justify-content: space-between; font-size: 0.9em; margin: 2px 0; }
+  .deuda { color: var(--rojo-deuda); font-weight: bold; }
+  .saldo-ok { color: var(--verde-pago); font-weight: bold; }
+  .btn {
+    background: var(--azul-medio);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 0.95em;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .btn.naranja { background: var(--naranja); }
+  .btn.verde { background: var(--verde-pago); }
+  .btn.chico { width: auto; padding: 6px 10px; font-size: 0.78em; }
+  .btn.rojo { background: var(--rojo-deuda); }
+  .btn.outline { background: white; color: var(--azul-medio); border: 1px solid var(--azul-medio); }
+  .btn-row { display: flex; gap: 6px; margin-top: 8px; }
+  .btn-row .btn { margin-top: 0; flex: 1; font-size: 0.78em; padding: 8px 4px; }
+  input, select {
+    width: 100%;
+    padding: 10px;
+    margin: 6px 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.95em;
+  }
+  label { font-size: 0.8em; color: #666; }
+  .section-title {
+    background: var(--azul-medio);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.8em;
+    letter-spacing: 0.5px;
+    margin: 14px 0 8px;
+    text-transform: uppercase;
+  }
+  .movimientos { max-height: 200px; overflow-y: auto; }
+  .mov-item { font-size: 0.82em; padding: 6px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; gap: 8px; }
+  .empty-msg { text-align: center; color: #999; padding: 30px 10px; font-size: 0.9em; }
+  .fab {
+    position: fixed;
+    bottom: 76px;
+    right: 20px;
+    background: var(--naranja);
+    color: white;
+    border: none;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    font-size: 1.6em;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    z-index: 15;
+  }
+  .footer-stats {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--azul-medio);
+    color: white;
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85em;
+    z-index: 20;
+  }
+  .footer-stats div { text-align: center; }
+  .footer-stats strong { display: block; font-size: 1.05em; }
+  .modal-bg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 50;
+    align-items: flex-end;
+  }
+  .modal-bg.active { display: flex; }
+  .modal {
+    background: white;
+    width: 100%;
+    border-radius: 18px 18px 0 0;
+    padding: 20px;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .modal h2 { margin-top: 0; font-size: 1.1em; }
+  .close-x { float: right; background: none; border: none; font-size: 1.3em; color: #999; }
+  .dia-selector { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .dia-chip {
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #eee;
+    font-size: 0.75em;
+    border: none;
+  }
+  .dia-chip.activo { background: var(--celeste); color: white; }
+  .preview-box {
+    background: var(--arena);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 8px 0;
+    text-align: center;
+    font-size: 1.05em;
+  }
+  .tipos-bidon {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .tipo-bidon-box {
+    flex: 1;
+    background: var(--arena);
+    border-radius: 12px;
+    padding: 8px 4px;
+    text-align: center;
+  }
+  .tipo-bidon-label {
+    display: block;
+    font-size: 0.78em;
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: var(--texto);
+  }
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .stepper input {
+    text-align: center;
+    padding: 6px 2px;
+    margin: 0;
+    font-weight: bold;
+    font-size: 1.1em;
+    min-width: 0;
+  }
+  .stepper .btn.chico {
+    padding: 6px 8px;
+    min-width: 30px;
+    flex-shrink: 0;
+  }
+  .visitado-tag {
+    display: inline-block;
+    background: var(--verde-pago);
+    color: white;
+    font-size: 0.7em;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-left: 6px;
+  }
+  /* Panel desplegable de busqueda */
+  .panel-desplegable {
+    display: none;
+    background: var(--azul-medio);
+    padding: 10px 12px 14px;
+  }
+  .panel-desplegable.activo { display: block; }
+  .filtro-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+  .filtro-tab {
+    flex: 1;
+    padding: 8px 4px;
+    background: transparent;
+    border: 1px solid white;
+    border-radius: 8px;
+    color: white;
+    font-size: 0.8em;
+  }
+  .filtro-tab.activo { background: var(--azul-hondo); }
+  .panel-desplegable input {
+    background: white;
+    margin: 0;
+  }
+  /* Menu hamburguesa */
+  .menu-dropdown {
+    display: none;
+    position: absolute;
+    top: 54px;
+    left: 8px;
+    background: #14232f;
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    z-index: 30;
+    min-width: 210px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .menu-dropdown.activo { display: block; }
+  .menu-dropdown button {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 13px 16px;
+    font-size: 0.9em;
+    color: white;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .menu-dropdown button:active {
+    background: rgba(255,255,255,0.08);
+  }
+  /* Selector de dia desplegable */
+  .dia-dropdown {
+    display: none;
+    position: absolute;
+    top: 54px;
+    right: 60px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    z-index: 30;
+    padding: 10px;
+  }
+  .dia-dropdown.activo { display: block; }
+  .dia-dropdown .dia-chip { color: var(--texto); }
+  /* Estadisticas */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .stat-box {
+    border-radius: 12px;
+    padding: 16px 8px;
+    text-align: center;
+    color: white;
+    font-size: 0.85em;
+  }
+  .stat-box .num { font-size: 1.3em; font-weight: bold; display: block; margin-bottom: 4px; }
+  .banner-deshacer {
+    display: none;
+    position: fixed;
+    bottom: 60px; left: 12px; right: 12px;
+    background: var(--azul-hondo);
+    color: white;
+    border-radius: 10px;
+    padding: 12px 14px;
+    z-index: 60;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .banner-deshacer.activo { display: flex; }
+  .banner-deshacer button {
+    background: var(--naranja);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.85em;
+  }
+</style>
+</head>
+<body>
+
+<header style="position:relative;">
+  <div style="text-align:center; padding-top:8px; font-weight:bold; font-size:1.15em; letter-spacing:1px;">💧 LA NORIA</div>
+  <div style="text-align:center; font-size:0.78em; opacity:0.85;" id="fechaHoyLabel"></div>
+  <div class="topbar">
+    <button class="icon-btn" onclick="toggleMenu()">☰</button>
+    <button class="icon-btn" id="btnAgregarTop">➕👤</button>
+    <button class="icon-btn" onclick="togglePanel('panelBusqueda')">🔍</button>
+    <button class="icon-btn" style="position:relative;" onclick="mostrarTransferenciasPendientes()">
+      🕒<span id="badgeTransferencias" style="display:none; position:absolute; top:-2px; right:-2px; background:#e74c3c; color:white; font-size:0.6em; border-radius:50%; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px;"></span>
+    </button>
+    <button class="icon-btn" onclick="togglePanel('diaDropdown')">📅</button>
+    <button class="icon-btn" onclick="renderTodo()">🔄</button>
+  </div>
+
+  <div class="menu-dropdown" id="menuDropdown">
+    <button onclick="abrirModalCargarReparto()">📥 Cargar reparto del día</button>
+    <button onclick="importarDesdeContactos()">📇 Importar clientes desde Contactos</button>
+    <button onclick="mostrarEstadisticas()">📊 Resumen del día</button>
+    <button onclick="mostrarHistorialFecha()">📜 Historial (por fecha o cliente)</button>
+    <button onclick="mostrarStockCamion()">🚚 Stock del camión</button>
+    <button onclick="mostrarTransferenciasPendientes()">🕒 Transferencias pendientes</button>
+    <button onclick="mostrarReporteSemanal()">📈 Reporte semanal</button>
+    <button onclick="exportarRespaldo()">💾 Descargar respaldo</button>
+    <button onclick="compartirRespaldo()">📤 Enviar respaldo (Drive / Email / WhatsApp)</button>
+    <button onclick="exportarExcel()">📊 Exportar movimientos a Excel</button>
+    <button onclick="document.getElementById('inputRestaurar').click()">📂 Restaurar respaldo</button>
+    <button onclick="cerrarMenus()">✕ Cerrar</button>
+  </div>
+  <input type="file" id="inputRestaurar" accept="application/json" style="display:none;" onchange="restaurarRespaldo(event)">
+
+  <div class="dia-dropdown" id="diaDropdown">
+    <label style="color:var(--texto);">Consultar clientes de otro día:</label>
+    <div class="dia-selector" id="selectorDiaVista"></div>
+  </div>
+
+  <div class="panel-desplegable" id="panelBusqueda">
+    <div class="filtro-tabs" id="filtroTabs"></div>
+    <input type="text" id="inputBusqueda" placeholder="Búsqueda por nombre de cliente" oninput="onBuscar()">
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="porVisitar">Por visitar</button>
+    <button class="tab-btn" data-tab="atendidos">Atendidos</button>
+    <button class="tab-btn" data-tab="fueraReparto">Fuera de reparto</button>
+  </div>
+</header>
+
+<!-- POR VISITAR: los del reparto de hoy que todavia no atendiste -->
+<div class="view active" id="view-porVisitar">
+  <div class="card" style="text-align:center;">
+    <strong id="tituloDiaHoy">Ruta de hoy</strong>
+  </div>
+  <div id="listaPorVisitar"></div>
+</div>
+
+<!-- ATENDIDOS: los del reparto de hoy que ya visitaste -->
+<div class="view" id="view-atendidos">
+  <div id="listaAtendidos"></div>
+</div>
+
+<!-- FUERA DE REPARTO: clientes que no estan programados para hoy, para venderles igual -->
+<div class="view" id="view-fueraReparto">
+  <div class="card">
+    <input type="text" id="inputBuscadorFuera" placeholder="Buscar cliente para agregar a fuera de reparto..." oninput="renderFueraDeReparto()">
+  </div>
+  <div id="listaFueraReparto"></div>
+</div>
+
+<!-- ESTADISTICAS -->
+<div class="view" id="view-estadisticas">
+  <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
+  <h2 style="text-align:center;">Resumen del día</h2>
+  <div class="stat-grid">
+    <div class="stat-box" style="background:#29b6d8;"><span class="num" id="estVenta">$0</span>Venta total</div>
+    <div class="stat-box" style="background:#2e8b57;"><span class="num" id="estEfectivo">$0</span>Efectivo</div>
+    <div class="stat-box" style="background:#7c8ff0;"><span class="num" id="estTransferencia">$0</span>Transferencia</div>
+    <div class="stat-box" style="background:#c0392b;"><span class="num" id="estDeuda">$0</span>Deuda</div>
+    <div class="stat-box" style="background:#2e8b57;"><span class="num" id="estVisitados">0/0</span>Clientes visitados</div>
+    <div class="stat-box" style="background:#e08a3e;"><span class="num" id="estEntregados">0</span>Envases entregados</div>
+    <div class="stat-box" style="background:#1a6fa8;"><span class="num" id="estRecibidos">0</span>Envases recibidos</div>
+    <div class="stat-box" style="background:#5c5c5c;"><span class="num" id="estClientesTotal">0</span>Clientes totales</div>
+    <div class="stat-box" style="background:#0b6e8f;"><span class="num" id="estB20">0</span>Vendidos 20L</div>
+    <div class="stat-box" style="background:#0b8f7a;"><span class="num" id="estB10">0</span>Vendidos 10-12L</div>
+    <div class="stat-box" style="background:#8f6b0b;"><span class="num" id="estDisp">0</span>Vendidos Dispenser</div>
+  </div>
+  <button class="btn naranja" onclick="cerrarRepartoDelDia()">🔒 Cerrar reparto del día</button>
+  <p style="font-size:0.78em; color:#666;" id="estadoCierreHoy"></p>
+  <button class="btn outline" onclick="mostrarReporteSemanal()">📈 Ver reporte semanal</button>
+</div>
+
+<!-- HISTORIAL (por fecha o por cliente) -->
+<div class="view" id="view-historialFecha">
+  <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
+  <h2 style="text-align:center;">Historial</h2>
+  <div class="btn-row">
+    <button class="btn" id="btnHistPorFecha" onclick="cambiarSubtabHistorial('fecha')">Por fecha</button>
+    <button class="btn outline" id="btnHistPorCliente" onclick="cambiarSubtabHistorial('cliente')">Por cliente</button>
+  </div>
+
+  <div id="histPorFecha">
+    <input type="date" id="inputFechaHistorial" onchange="renderHistorialFecha()">
+    <div id="listaHistorialFecha"></div>
+  </div>
+
+  <div id="histPorCliente" style="display:none;">
+    <input type="text" id="inputBuscarClienteHist" placeholder="Buscar cliente por nombre" oninput="renderHistorialPorCliente()">
+    <div id="listaHistorialPorCliente"></div>
+  </div>
+</div>
+
+<!-- CONSULTAR OTRO DIA -->
+<div class="view" id="view-consultaDia">
+  <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
+  <h2 style="text-align:center;" id="tituloConsultaDia">Clientes de...</h2>
+  <p style="font-size:0.78em; color:#666; text-align:center;">Esto es solo para consultar o venderle a alguien fuera del reparto de hoy. No cambia tu reparto activo.</p>
+  <div id="listaConsultaDia"></div>
+</div>
+
+<!-- REPORTE SEMANAL -->
+<div class="view" id="view-reporteSemanal">
+  <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
+  <h2 style="text-align:center;">Reporte semanal</h2>
+  <p style="font-size:0.8em; color:#666; text-align:center;">Últimos 7 días (con el reparto cerrado)</p>
+  <div id="listaReporteSemanal"></div>
+  <div class="card" style="background:var(--azul-hondo); color:white;">
+    <h3>Total de la semana</h3>
+    <div class="row"><span>Venta total:</span><strong id="semVenta">$0</strong></div>
+    <div class="row"><span>Efectivo:</span><strong id="semEfectivo">$0</strong></div>
+    <div class="row"><span>Transferencia:</span><strong id="semTransferencia">$0</strong></div>
+    <div class="row"><span>Fiado:</span><strong id="semDeuda">$0</strong></div>
+    <div class="row"><span>Envases entregados:</span><strong id="semEntregados">0</strong></div>
+    <div class="row"><span>Envases recibidos:</span><strong id="semRecibidos">0</strong></div>
+    <div class="row"><span>Vendidos 20L:</span><strong id="semB20">0</strong></div>
+    <div class="row"><span>Vendidos 10-12L:</span><strong id="semB10">0</strong></div>
+    <div class="row"><span>Vendidos Dispenser:</span><strong id="semDisp">0</strong></div>
+  </div>
+</div>
+
+<!-- TRANSFERENCIAS PENDIENTES -->
+<div class="view" id="view-transferenciasPendientes">
+  <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
+  <h2 style="text-align:center;">🕒 Transferencias pendientes</h2>
+  <p style="font-size:0.8em; color:#666; text-align:center;">Las marcadas con ⚠️ son de días anteriores — mandales el recordatorio.</p>
+  <div id="listaTransferenciasPendientes"></div>
+</div>
+
+<!-- STOCK DEL CAMION -->
+<div class="view" id="view-stockCamion">
+  <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
+  <h2 style="text-align:center;">Stock del camión</h2>
+
+  <div class="card" style="text-align:center; background:var(--celeste); color:white;">
+    <span style="font-size:0.85em;">Envases vacíos que te dieron hoy</span>
+    <div style="font-size:1.6em; font-weight:bold;" id="stockEnvasesVaciosHoy">0</div>
+  </div>
+
+  <div class="card">
+    <h3>💧 Bidones 20 Lts</h3>
+    <div class="row"><span>Te quedan llenos:</span><strong id="stockB20">0</strong></div>
+    <label>Cargar stock al arrancar el día (reemplaza lo que había)</label>
+    <input type="number" inputmode="numeric" id="inputStockB20" placeholder="Ej: 50">
+    <label>Sumar más (volviste a cargar sin perder lo que quedaba)</label>
+    <div class="btn-row">
+      <input type="number" inputmode="numeric" id="inputSumarB20" placeholder="Ej: 20" style="margin:0;">
+      <button class="btn chico" onclick="sumarStock('b20')">＋ Sumar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>💧 Bidones 10/12 Lts</h3>
+    <div class="row"><span>Te quedan llenos:</span><strong id="stockB10">0</strong></div>
+    <label>Cargar stock al arrancar el día (reemplaza lo que había)</label>
+    <input type="number" inputmode="numeric" id="inputStockB10" placeholder="Ej: 3">
+    <label>Sumar más</label>
+    <div class="btn-row">
+      <input type="number" inputmode="numeric" id="inputSumarB10" placeholder="Ej: 2" style="margin:0;">
+      <button class="btn chico" onclick="sumarStock('b10')">＋ Sumar</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn chico outline" onclick="ajustarStockManual('b10',-1)">－ vendí uno</button>
+      <button class="btn chico outline" onclick="ajustarStockManual('b10',1)">＋ corregir</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🧊 Dispensers</h3>
+    <div class="row"><span>Te quedan:</span><strong id="stockDisp">0</strong></div>
+    <label>Cargar stock al arrancar el día (reemplaza lo que había)</label>
+    <input type="number" inputmode="numeric" id="inputStockDisp" placeholder="Ej: 2">
+    <label>Sumar más</label>
+    <div class="btn-row">
+      <input type="number" inputmode="numeric" id="inputSumarDisp" placeholder="Ej: 1" style="margin:0;">
+      <button class="btn chico" onclick="sumarStock('disp')">＋ Sumar</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn chico outline" onclick="ajustarStockManual('disp',-1)">－ vendí uno</button>
+      <button class="btn chico outline" onclick="ajustarStockManual('disp',1)">＋ corregir</button>
+    </div>
+  </div>
+
+  <button class="btn naranja" onclick="cargarStockInicial()">Guardar stock inicial (reemplaza)</button>
+  <p style="font-size:0.78em; color:#666; margin-top:10px;">
+    Los bidones de 20 Lts y los envases vacíos recibidos se descuentan/suman solos con cada venta.
+    Los de 10/12 Lts y los dispensers todavía se ajustan a mano con los botones.
+  </p>
+</div>
+
+
+<button class="fab" id="btnAgregar">+</button>
+
+<button id="btnInstalarApp" style="display:none; position:fixed; bottom:80px; left:12px; right:12px; z-index:70; background:var(--naranja); color:white; border:none; padding:14px; border-radius:10px; font-size:1em; font-weight:bold;">
+  📲 Instalar LA NORIA en la pantalla de inicio
+</button>
+
+<div class="banner-deshacer" id="bannerDeshacer">
+  <span id="bannerDeshacerTexto">Cliente eliminado</span>
+  <button onclick="deshacerEliminacion()">Deshacer</button>
+</div>
+
+<div class="footer-stats">
+  <div><strong id="statVendido">$0</strong>Vendido</div>
+  <div><strong id="statCobrado">$0</strong>Cobrado</div>
+  <div><strong id="statVisitas">0/0</strong>Visitas</div>
+</div>
+
+<!-- MODAL NUEVO CLIENTE -->
+<div class="modal-bg" id="modalCliente">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalCliente')">×</button>
+    <h2 id="tituloModalCliente">Nuevo cliente</h2>
+
+    <div class="section-title">Datos del cliente</div>
+    <label>Nombre</label>
+    <input type="text" id="inputNombre" placeholder="Ej: Doña Rosa">
+    <label>Teléfono</label>
+    <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputTelefono" placeholder="Solo números">
+
+    <div class="section-title">Dirección</div>
+    <label>Calle y altura</label>
+    <input type="text" id="inputDireccion" placeholder="Ej: Calle 5, 823">
+
+    <div class="section-title">Configuración</div>
+    <label>Precio bidón 20 Lts ($)</label>
+    <input type="number" inputmode="numeric" id="inputPrecio" placeholder="Ej: 5000">
+    <label>Precio bidón 10-12 Lts ($)</label>
+    <input type="number" inputmode="numeric" id="inputPrecio10" placeholder="Ej: 3000">
+    <label>Precio Dispenser ($)</label>
+    <input type="number" inputmode="numeric" id="inputPrecioDisp" placeholder="Ej: 8000">
+    <label>Frecuencia de visita (días)</label>
+    <div class="dia-selector" id="diasClienteSelector"></div>
+
+    <div class="section-title">Orden en el recorrido</div>
+    <label>Va después de qué cliente (en su día de reparto)</label>
+    <select id="inputDespuesDe">
+      <option value="">Al final del recorrido</option>
+    </select>
+
+    <button class="btn naranja" onclick="guardarCliente()">Guardar cliente</button>
+  </div>
+</div>
+
+<!-- MODAL STOCK / REGISTRAR COMPRA -->
+<div class="modal-bg" id="modalStock">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalStock')">×</button>
+    <h2 id="nombreStock">Cliente</h2>
+    <div class="row"><span>Saldo actual:</span><strong id="saldoActualStock">$0</strong></div>
+    <div class="row"><span>Envases que debe:</span><strong id="bidonesPoderStock">0</strong></div>
+    <hr>
+    <label>¿Qué le vendés?</label>
+    <div class="tipos-bidon">
+      <div class="tipo-bidon-box">
+        <span class="tipo-bidon-label">💧 20 Lts</span>
+        <div class="stepper">
+          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkB20',-1)">－</button>
+          <input type="number" inputmode="numeric" id="stkB20" value="" min="0" placeholder="0" oninput="actualizarPreviewStock()">
+          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkB20',1)">＋</button>
+        </div>
+      </div>
+      <div class="tipo-bidon-box">
+        <span class="tipo-bidon-label">💧 10-12 Lts</span>
+        <div class="stepper">
+          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkB10',-1)">－</button>
+          <input type="number" inputmode="numeric" id="stkB10" value="" min="0" placeholder="0" oninput="actualizarPreviewStock()">
+          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkB10',1)">＋</button>
+        </div>
+      </div>
+      <div class="tipo-bidon-box">
+        <span class="tipo-bidon-label">🧊 Dispenser</span>
+        <div class="stepper">
+          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkDisp',-1)">－</button>
+          <input type="number" inputmode="numeric" id="stkDisp" value="" min="0" placeholder="0" oninput="actualizarPreviewStock()">
+          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkDisp',1)">＋</button>
+        </div>
+      </div>
+    </div>
+    <label>Envases vacíos que devuelve</label>
+    <input type="number" inputmode="numeric" id="stkEnvases" value="" min="0" placeholder="0">
+    <div class="preview-box">Total de esta compra: <strong id="stkPreview">$0</strong></div>
+
+    <div class="btn-row">
+      <button class="btn verde" onclick="confirmarStock('efectivo')">Efectivo</button>
+      <button class="btn" onclick="confirmarStock('transferencia')">Transferencia ya recibida</button>
+    </div>
+    <button class="btn outline" style="margin-top:6px;" onclick="confirmarStock('transferencia_pendiente')">🕒 Transferencia pendiente (dijo que te manda)</button>
+
+    <label style="margin-top:10px;">¿Cuánto te entrega ahora? (parcial o fiado)</label>
+    <input type="number" inputmode="numeric" id="stkEntregado" placeholder="0">
+    <button class="btn naranja" onclick="confirmarStock('entregado')">Registrar lo entregado</button>
+
+    <button class="btn outline" onclick="marcarNoCompra()">No compra</button>
+
+    <hr>
+    <h3 style="margin-bottom:6px;">Historial de este cliente</h3>
+    <div id="historialStock" style="max-height:220px; overflow-y:auto; -webkit-overflow-scrolling:touch; border:1px solid #ddd; border-radius:8px; padding:8px; background:#fafafa;"></div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE / HISTORIAL CLIENTE -->
+<div class="modal-bg" id="modalDetalle">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalDetalle')">×</button>
+    <h2 id="nombreDetalle">Cliente</h2>
+    <div class="row"><span>Saldo actual:</span><strong id="saldoDetalle">$0</strong></div>
+    <div class="row"><span>Envases que debe:</span><strong id="envasesDetalle">0</strong></div>
+    <div class="row"><span>Días de reparto:</span><strong id="diasDetalle">-</strong></div>
+    <div class="btn-row" id="botonesContacto"></div>
+    <button class="btn outline" onclick="abrirEditarCliente()">✏️ Editar datos del cliente</button>
+    <hr>
+    <label>Registrar pago (salda deuda vieja)</label>
+    <input type="number" inputmode="numeric" id="inputPago" placeholder="Monto $">
+    <button class="btn naranja" onclick="registrarPago()">Registrar pago</button>
+    <hr>
+    <button class="btn rojo" onclick="borrarCliente()">Eliminar cliente</button>
+    <h3>Historial</h3>
+    <div class="movimientos" id="historialCliente"></div>
+  </div>
+</div>
+
+<!-- MODAL CARGAR REPARTO (elegir dia activo) -->
+<div class="modal-bg" id="modalCargarReparto">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalCargarReparto')">×</button>
+    <h2>Cargar reparto del día</h2>
+    <p style="font-size:0.85em; color:#666;">Elegí el día de reparto que vas a hacer. "Por visitar", "Atendidos" y "Fuera de reparto" van a mostrar los clientes de ese día.</p>
+    <div class="dia-selector" id="selectorDiaActivo"></div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR ELIMINAR -->
+<div class="modal-bg" id="modalConfirmarEliminar">
+  <div class="modal">
+    <h2>Eliminar cliente</h2>
+    <p>¿Seguro que querés eliminar a <strong id="nombreAEliminar"></strong>? Esta acción no se puede deshacer.</p>
+    <button class="btn rojo" onclick="confirmarBorrado()">Sí, eliminar</button>
+    <button class="btn outline" onclick="cerrarModal('modalConfirmarEliminar')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL BOLETA -->
+<div class="modal-bg" id="modalBoleta">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalBoleta')">×</button>
+    <h2>🧾 Boleta</h2>
+    <textarea id="boletaTexto" readonly style="width:100%; min-height:220px; font-family:monospace; font-size:0.85em; padding:10px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box;"></textarea>
+    <div class="btn-row" style="margin-top:10px;">
+      <a class="btn verde" id="btnBoletaWhatsApp" style="text-decoration:none; text-align:center;" href="#">📲 Enviar por WhatsApp</a>
+      <button class="btn outline" onclick="copiarBoleta()">📋 Copiar texto</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR ANULAR VENTA -->
+<div class="modal-bg" id="modalConfirmarAnular">
+  <div class="modal">
+    <h2>Anular venta</h2>
+    <p>¿Seguro que querés anular este movimiento? Se va a borrar del todo, se descuenta del resumen del día y del stock del camión (si correspondía). No se puede deshacer.</p>
+    <button class="btn rojo" onclick="anularMovimiento()">Sí, anular</button>
+    <button class="btn outline" onclick="cerrarModal('modalConfirmarAnular')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL EDITAR MOVIMIENTO -->
+<div class="modal-bg" id="modalEditarMov">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalEditarMov')">×</button>
+    <h2>Corregir movimiento</h2>
+    <p style="font-size:0.8em; color:#666;" id="fechaEditMov"></p>
+
+    <div class="btn-row">
+      <button class="btn" id="btnEditCompro" onclick="setTipoEdicion('compra')">Compró</button>
+      <button class="btn outline" id="btnEditNoCompro" onclick="setTipoEdicion('no_compra')">No compró</button>
+    </div>
+
+    <div id="camposEditCompra">
+      <label>Bidones 20L</label>
+      <input type="number" inputmode="numeric" id="editB20" min="0">
+      <label>Bidones 10-12L</label>
+      <input type="number" inputmode="numeric" id="editB10" min="0">
+      <label>Dispenser</label>
+      <input type="number" inputmode="numeric" id="editDisp" min="0">
+      <label>Envases que devolvió</label>
+      <input type="number" inputmode="numeric" id="editEnvases" min="0">
+      <label>Forma de pago</label>
+      <select id="editFormaPago" onchange="toggleEditMontoEntregado()">
+        <option value="efectivo">Efectivo (pagó todo)</option>
+        <option value="transferencia">Transferencia (pagó todo)</option>
+        <option value="transferencia_pendiente">Transferencia pendiente (todavía no llegó)</option>
+        <option value="entregado">Entregado (parcial / fiado)</option>
+      </select>
+      <div id="editMontoEntregadoWrap" style="display:none;">
+        <label>Monto entregado ($)</label>
+        <input type="number" inputmode="numeric" id="editMontoEntregado">
+      </div>
+    </div>
+
+    <button class="btn naranja" onclick="guardarEdicionMovimiento()">Guardar corrección</button>
+    <button class="btn outline" style="border-color:#c0392b; color:#c0392b; margin-top:10px;" onclick="confirmarAnularMovimiento()">🗑️ Anular esta venta (no vale, deshacer del todo)</button>
+  </div>
+</div>
+
+<script>
+// ---------- ESTADO ----------
+const CLAVE_STORAGE = 'aguacontrol_estado_v1';
+const DIAS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+
+let clientes = [];
+let contadorClientes = 0;
+let clienteSeleccionado = null;
+let clienteStockId = null;
+let diaSeleccionado = diaDeHoy();
+let searchTerm = '';
+let searchType = 'nombre';
+
+let ventaHoy = 0;
+let cobradoHoy = 0;
+let efectivoHoy = 0;
+let transferenciaHoy = 0;
+let entregadoHoy = 0;
+let deudaGeneradaHoy = 0;
+let envasesEntregadosHoy = 0;
+let envasesRecibidosHoy = 0;
+let b20VendidosHoy = 0;
+let b10VendidosHoy = 0;
+let dispVendidosHoy = 0;
+let visitasHoy = new Set();
+let fechaContadores = todayISO();
+
+// Stock de bidones que cargás en el camión antes de salir a repartir
+let stockCamion = { b20: 0, b10: 0, disp: 0 };
+
+// Archivo de repartos cerrados, uno por fecha (para el reporte semanal)
+let resumenesDiarios = {};
+
+function diaDeHoy(){
+  return DIAS[(new Date().getDay()+6)%7];
+}
+
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function isoAFechaLabel(iso){
+  if(!iso || typeof iso !== 'string' || iso.indexOf('-') === -1) return '-';
+  const [y,m,d] = iso.split('-');
+  return d + '/' + m + '/' + y;
+}
+
+function actualizarFechaHoyLabel(){
+  const dias = DIAS;
+  const hoy = new Date();
+  const nombreDia = dias[(hoy.getDay()+6)%7];
+  document.getElementById('fechaHoyLabel').textContent = nombreDia + ' ' + isoAFechaLabel(todayISO());
+}
+
+function generarId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function verificarResetDiario(){
+  if(fechaContadores !== todayISO()){
+    ventaHoy = 0; cobradoHoy = 0; efectivoHoy = 0; transferenciaHoy = 0;
+    entregadoHoy = 0; deudaGeneradaHoy = 0; envasesEntregadosHoy = 0; envasesRecibidosHoy = 0;
+    b20VendidosHoy = 0; b10VendidosHoy = 0; dispVendidosHoy = 0;
+    visitasHoy = new Set();
+    fechaContadores = todayISO();
+  }
+}
+
+// ---------- GUARDADO EN EL CELULAR (localStorage) ----------
+// Esto guarda los datos en el navegador de tu teléfono para que no se
+// pierdan al cerrar la app. Funciona cuando abrís el archivo directamente
+// en tu celular (Chrome, Spck, etc). En la vista previa del chat puede no
+// conservarse porque el chat usa un entorno temporal.
+// ---------- MEMORIA DOBLE: localStorage + IndexedDB de respaldo ----------
+// Si el navegador/atajo borra localStorage, tratamos de recuperar de IndexedDB
+const DB_NOMBRE = 'aguacontrol_db';
+const DB_ALMACEN = 'estado';
+let promesaDB = null;
+
+function abrirBaseRespaldo(){
+  if(promesaDB) return promesaDB;
+  promesaDB = new Promise((resolve)=>{
+    if(!window.indexedDB){ resolve(null); return; }
+    try{
+      const req = indexedDB.open(DB_NOMBRE, 1);
+      req.onupgradeneeded = function(e){
+        const db = e.target.result;
+        if(!db.objectStoreNames.contains(DB_ALMACEN)) db.createObjectStore(DB_ALMACEN);
+      };
+      req.onsuccess = function(e){ resolve(e.target.result); };
+      req.onerror = function(){ resolve(null); };
+    }catch(e){ resolve(null); }
+  });
+  return promesaDB;
+}
+
+function guardarEnBaseRespaldo(estado){
+  abrirBaseRespaldo().then(db=>{
+    if(!db) return;
+    try{
+      const tx = db.transaction(DB_ALMACEN, 'readwrite');
+      tx.objectStore(DB_ALMACEN).put(estado, 'estadoActual');
+    }catch(e){ /* silencioso */ }
+  });
+}
+
+function cargarDeBaseRespaldo(){
+  return abrirBaseRespaldo().then(db=>{
+    if(!db) return null;
+    return new Promise(resolve=>{
+      try{
+        const tx = db.transaction(DB_ALMACEN, 'readonly');
+        const req = tx.objectStore(DB_ALMACEN).get('estadoActual');
+        req.onsuccess = function(){ resolve(req.result || null); };
+        req.onerror = function(){ resolve(null); };
+      }catch(e){ resolve(null); }
+    });
+  });
+}
+
+function construirEstadoActual(){
+  return {
+    clientes, contadorClientes, diaSeleccionado,
+    ventaHoy, cobradoHoy, efectivoHoy, transferenciaHoy, entregadoHoy,
+    deudaGeneradaHoy, envasesEntregadosHoy, envasesRecibidosHoy,
+    b20VendidosHoy, b10VendidosHoy, dispVendidosHoy,
+    visitasHoy: Array.from(visitasHoy),
+    fechaContadores, stockCamion, resumenesDiarios,
+    clientesFueraRutaHoy: Array.from(clientesFueraRutaHoy),
+    ultimaModificacion: Date.now()
+  };
+}
+
+function aplicarEstadoDesdeObjeto(estado){
+  clientes = estado.clientes || [];
+  contadorClientes = estado.contadorClientes || 0;
+  diaSeleccionado = estado.diaSeleccionado || diaDeHoy();
+  ventaHoy = estado.ventaHoy || 0;
+  cobradoHoy = estado.cobradoHoy || 0;
+  efectivoHoy = estado.efectivoHoy || 0;
+  transferenciaHoy = estado.transferenciaHoy || 0;
+  entregadoHoy = estado.entregadoHoy || 0;
+  deudaGeneradaHoy = estado.deudaGeneradaHoy || 0;
+  envasesEntregadosHoy = estado.envasesEntregadosHoy || 0;
+  envasesRecibidosHoy = estado.envasesRecibidosHoy || 0;
+  b20VendidosHoy = estado.b20VendidosHoy || 0;
+  b10VendidosHoy = estado.b10VendidosHoy || 0;
+  dispVendidosHoy = estado.dispVendidosHoy || 0;
+  visitasHoy = new Set(estado.visitasHoy || []);
+  fechaContadores = estado.fechaContadores || todayISO();
+  stockCamion = estado.stockCamion || { b20: 0, b10: 0, disp: 0 };
+  resumenesDiarios = estado.resumenesDiarios || {};
+  clientesFueraRutaHoy = new Set(estado.clientesFueraRutaHoy || []);
+}
+
+function guardarEstado(){
+  const estado = construirEstadoActual();
+  try{
+    localStorage.setItem(CLAVE_STORAGE, JSON.stringify(estado));
+  }catch(e){
+    console.log('No se pudo guardar en localStorage:', e);
+  }
+  guardarEnBaseRespaldo(estado);
+}
+
+function cargarEstado(){
+  let cargadoOk = false;
+  try{
+    const guardado = localStorage.getItem(CLAVE_STORAGE);
+    if(guardado){
+      aplicarEstadoDesdeObjeto(JSON.parse(guardado));
+      cargadoOk = true;
+    }
+  }catch(e){
+    console.log('No se pudo cargar el estado guardado:', e);
+  }
+  verificarResetDiario();
+
+  if(!cargadoOk){
+    // La memoria principal vino vacía (se borró). Probamos recuperar
+    // de la memoria de respaldo (IndexedDB), que es más difícil de borrar.
+    cargarDeBaseRespaldo().then(estado=>{
+      if(estado){
+        aplicarEstadoDesdeObjeto(estado);
+        verificarResetDiario();
+        guardarEstado();
+        renderTodo();
+        const fechaRespaldo = estado.ultimaModificacion
+          ? new Date(estado.ultimaModificacion).toLocaleString('es-AR')
+          : 'una fecha anterior';
+        alert(`⚠️ Se recuperaron datos de una copia de seguridad automática (del ${fechaRespaldo}), porque la memoria principal del celular se vació.\n\nRevisá que esté todo correcto — si ves algo raro o viejo (como clientes que ya habías borrado), podés eliminarlo de nuevo tranquilo.`);
+      }
+    });
+  }
+}
+
+// ---------- NAVEGACION DE TABS ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.tab).classList.add('active');
+    cerrarMenus();
+    renderTodo();
+  });
+});
+
+// ---------- MENUS Y PANELES DESPLEGABLES ----------
+function cerrarMenus(){
+  document.getElementById('menuDropdown').classList.remove('activo');
+  document.getElementById('diaDropdown').classList.remove('activo');
+}
+function toggleMenu(){
+  document.getElementById('diaDropdown').classList.remove('activo');
+  document.getElementById('menuDropdown').classList.toggle('activo');
+}
+function togglePanel(id){
+  document.getElementById('menuDropdown').classList.remove('activo');
+  const otro = id === 'diaDropdown' ? null : 'diaDropdown';
+  if(id === 'panelBusqueda'){
+    document.getElementById('diaDropdown').classList.remove('activo');
+    document.getElementById('panelBusqueda').classList.toggle('activo');
+  } else {
+    document.getElementById('panelBusqueda').classList.remove('activo');
+    document.getElementById(id).classList.toggle('activo');
+  }
+}
+
+function mostrarEstadisticas(){
+  cerrarMenus();
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-estadisticas').classList.add('active');
+  renderEstadisticas();
+}
+function volverDeEstadisticas(){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-porVisitar').classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="porVisitar"]').classList.add('active');
+}
+
+// Selector de dia (icono calendario)
+function renderSelectorDiaVista(){
+  const cont = document.getElementById('selectorDiaVista');
+  cont.innerHTML = '';
+  DIAS.forEach(dia=>{
+    const chip = document.createElement('button');
+    chip.className = 'dia-chip' + (dia===diaConsulta ? ' activo':'');
+    chip.textContent = dia;
+    chip.onclick = ()=>{
+      abrirConsultaDia(dia);
+      cerrarMenus();
+    };
+    cont.appendChild(chip);
+  });
+}
+
+// Buscador
+function renderFiltroTabs(){
+  const cont = document.getElementById('filtroTabs');
+  cont.innerHTML = '';
+  [['nombre','Nombre'],['domicilio','Domicilio'],['codigo','Código']].forEach(([valor,label])=>{
+    const btn = document.createElement('button');
+    btn.className = 'filtro-tab' + (searchType===valor ? ' activo':'');
+    btn.textContent = label;
+    btn.onclick = ()=>{ searchType = valor; renderFiltroTabs(); renderTodo(); };
+    cont.appendChild(btn);
+  });
+}
+function onBuscar(){
+  searchTerm = document.getElementById('inputBusqueda').value.trim();
+  renderTodo();
+}
+function pasaFiltro(c){
+  if(!searchTerm) return true;
+  const term = searchTerm.toLowerCase();
+  if(searchType==='nombre') return c.nombre.toLowerCase().includes(term);
+  if(searchType==='domicilio') return (c.direccion||'').toLowerCase().includes(term);
+  if(searchType==='codigo') return String(c.codigo).includes(term);
+  return true;
+}
+
+// ---------- MODAL NUEVO CLIENTE ----------
+// ---------- CARGAR REPARTO DEL DIA ----------
+
+// ---------- IMPORTAR CLIENTES DESDE CONTACTOS (agenda del celular) ----------
+async function importarDesdeContactos(){
+  cerrarMenus();
+
+  if(!('contacts' in navigator && 'ContactsManager' in window)){
+    alert('Tu celular o tu navegador no permite esta función todavía.\n\nSolo anda en Chrome para Android (versión 80 o más nueva). Si estás en otro navegador o en iPhone, tenés que cargar los clientes a mano con el botón +.');
+    return;
+  }
+
+  try{
+    const propiedades = ['name','tel'];
+    const contactos = await navigator.contacts.select(propiedades, {multiple:true});
+    if(!contactos || contactos.length === 0) return;
+
+    let importados = 0;
+    contactos.forEach(ct=>{
+      const nombreCompleto = (ct.name && ct.name[0]) ? ct.name[0].trim() : '';
+      if(!nombreCompleto) return;
+      const telefono = (ct.tel && ct.tel[0]) ? ct.tel[0].replace(/[^0-9]/g,'') : '';
+
+      // Muchos guardan el nombre como "Cliente - Dirección" o "Cliente, Dirección"
+      // Probamos separarlo así; si no hay separador, todo queda en el nombre.
+      let nombre = nombreCompleto;
+      let direccion = '';
+      const separadores = [' - ', ' – ', ', '];
+      for(const sep of separadores){
+        if(nombreCompleto.includes(sep)){
+          const partes = nombreCompleto.split(sep);
+          nombre = partes[0].trim();
+          direccion = partes.slice(1).join(sep).trim();
+          break;
+        }
+      }
+
+      contadorClientes++;
+      const cliente = {
+        id: generarId(),
+        codigo: contadorClientes,
+        nombre,
+        telefono,
+        direccion,
+        precio: 5000,
+        dias: [],
+        saldo: 0,
+        envasesPendientes: 0,
+        historial: [],
+        ordenPorDia: {}
+      };
+      clientes.push(cliente);
+      importados++;
+    });
+
+    guardarEstado();
+    renderTodo();
+    alert(`Se importaron ${importados} contactos ✅\n\nTodavía no tienen día de reparto asignado, así que los vas a encontrar en la pestaña "Fuera de reparto". Entrá a cada uno (✏️ Editar datos) para completar dirección (si no se separó bien), precio y elegir sus días.`);
+  }catch(e){
+    // el usuario canceló el selector, no hacemos nada
+  }
+}
+
+function abrirModalCargarReparto(){
+  cerrarMenus();
+  const cont = document.getElementById('selectorDiaActivo');
+  cont.innerHTML = '';
+  DIAS.forEach(dia=>{
+    const chip = document.createElement('button');
+    chip.className = 'dia-chip' + (dia===diaSeleccionado ? ' activo':'');
+    chip.textContent = dia;
+    chip.onclick = ()=>{
+      diaSeleccionado = dia;
+      verificarResetDiario();
+      cerrarModal('modalCargarReparto');
+      renderTodo();
+    };
+    cont.appendChild(chip);
+  });
+  abrirModal('modalCargarReparto');
+}
+
+// ---------- CONSULTAR CLIENTES DE OTRO DIA ----------
+let diaConsulta = null;
+
+function abrirConsultaDia(dia){
+  diaConsulta = dia;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-consultaDia').classList.add('active');
+  document.getElementById('tituloConsultaDia').textContent = 'Clientes de ' + dia;
+  renderConsultaDia();
+}
+
+function renderConsultaDia(){
+  if(!diaConsulta){
+    document.getElementById('listaConsultaDia').innerHTML = '';
+    return;
+  }
+  const cont = document.getElementById('listaConsultaDia');
+  const filtrados = clientes.filter(c=>c.dias.includes(diaConsulta) && pasaFiltro(c));
+  if(filtrados.length === 0){
+    cont.innerHTML = '<div class="empty-msg">Sin clientes para ese día</div>';
+    return;
+  }
+  cont.innerHTML = filtrados.map(c=>{
+    const yaAgregado = clientesFueraRutaHoy.has(c.id);
+    const puedeAgregar = diaConsulta !== diaSeleccionado;
+    return `
+    <div class="card">
+      <div onclick="abrirDetalle('${c.id}')">
+        <h3>${c.codigo} - ${c.nombre}</h3>
+        <div class="row"><span>${c.direccion || ''}</span></div>
+        <div class="row"><span>Saldo:</span><span class="${c.saldo>0?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
+        <div class="row"><span>Último movimiento:</span><span>${c.historial.length > 0 ? c.historial[c.historial.length-1].fechaISO : 'Nunca'}</span></div>
+      </div>
+      ${(puedeAgregar && !yaAgregado) ? `<button class="btn chico naranja" style="margin-top:6px;" onclick="agregarAFueraDeReparto('${c.id}')">🚚➕ Agregar a fuera de reparto de hoy</button>` : ''}
+      ${(puedeAgregar && yaAgregado) ? `<div class="row" style="color:var(--verde-pago); font-weight:bold; margin-top:6px;">✅ Ya está en fuera de reparto de hoy</div>` : ''}
+    </div>
+  `;
+  }).join('');
+}
+
+function abrirModalNuevoCliente(){
+  document.getElementById('tituloModalCliente').textContent = 'Nuevo cliente';
+  document.getElementById('inputNombre').value = '';
+  document.getElementById('inputTelefono').value = '';
+  document.getElementById('inputDireccion').value = '';
+  document.getElementById('inputPrecio').value = 5000;
+  document.getElementById('inputPrecio10').value = 3000;
+  document.getElementById('inputPrecioDisp').value = 8000;
+  renderDiasSelector('diasClienteSelector', []);
+  renderSelectDespuesDe();
+  clienteSeleccionado = null;
+  cerrarMenus();
+  abrirModal('modalCliente');
+}
+document.getElementById('btnAgregar').addEventListener('click', abrirModalNuevoCliente);
+document.getElementById('btnAgregarTop').addEventListener('click', abrirModalNuevoCliente);
+
+function abrirModal(id){ document.getElementById(id).classList.add('active'); }
+function cerrarModal(id){ document.getElementById(id).classList.remove('active'); }
+
+function renderDiasSelector(contenedorId, diasActivos){
+  const cont = document.getElementById(contenedorId);
+  cont.innerHTML = '';
+  DIAS.forEach(dia=>{
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'dia-chip' + (diasActivos.includes(dia) ? ' activo' : '');
+    chip.textContent = dia;
+    chip.onclick = ()=>{ chip.classList.toggle('activo'); };
+    cont.appendChild(chip);
+  });
+}
+function diasSeleccionadosDe(contenedorId){
+  return Array.from(document.querySelectorAll('#'+contenedorId+' .dia-chip.activo')).map(c=>c.textContent);
+}
+function renderSelectDespuesDe(){
+  const sel = document.getElementById('inputDespuesDe');
+  sel.innerHTML = '<option value="">Al final del recorrido</option>';
+  clientes.forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.codigo + ' - ' + c.nombre;
+    sel.appendChild(opt);
+  });
+}
+
+// ---------- CRUD CLIENTES ----------
+function guardarCliente(){
+  const nombre = document.getElementById('inputNombre').value.trim();
+  const telefono = document.getElementById('inputTelefono').value.trim();
+  const direccion = document.getElementById('inputDireccion').value.trim();
+  const precio = parseFloat(document.getElementById('inputPrecio').value) || 0;
+  const precio10 = parseFloat(document.getElementById('inputPrecio10').value) || 0;
+  const precioDisp = parseFloat(document.getElementById('inputPrecioDisp').value) || 0;
+  const dias = diasSeleccionadosDe('diasClienteSelector');
+  const despuesDe = document.getElementById('inputDespuesDe').value;
+
+  if(!nombre){ alert('Poné un nombre para el cliente'); return; }
+  if(dias.length === 0){ alert('Elegí al menos un día de reparto'); return; }
+
+  let cliente;
+  let esNuevo = !clienteSeleccionado;
+  if(clienteSeleccionado){
+    cliente = clientes.find(x=>x.id===clienteSeleccionado);
+    cliente.nombre = nombre; cliente.telefono = telefono;
+    cliente.direccion = direccion; cliente.precio = precio;
+    cliente.precio10 = precio10; cliente.precioDisp = precioDisp;
+    cliente.dias = dias;
+    // Quitar orden de los días que ya no están seleccionados
+    Object.keys(cliente.ordenPorDia).forEach(dia=>{
+      if(!dias.includes(dia)) delete cliente.ordenPorDia[dia];
+    });
+  } else {
+    contadorClientes++;
+    cliente = {
+      id: generarId(), codigo: contadorClientes, nombre, telefono, direccion, precio, precio10, precioDisp, dias,
+      saldo: 0, envasesPendientes: 0, historial: [], ordenPorDia: {}
+    };
+    clientes.push(cliente);
+  }
+
+  // Solo asignamos orden en la ruta para los días nuevos (si ya tenía
+  // orden en un día, lo respetamos y no lo movemos de lugar al editar)
+  dias.forEach(dia=>{
+    if(esNuevo || cliente.ordenPorDia[dia] === undefined){
+      insertarEnRuta(cliente.id, dia, despuesDe);
+    }
+  });
+
+  cerrarModal('modalCliente');
+  renderTodo();
+}
+
+function abrirEditarCliente(){
+  const c = clientes.find(x=>x.id===clienteSeleccionado);
+  if(!c) return;
+  cerrarModal('modalDetalle');
+  document.getElementById('tituloModalCliente').textContent = 'Editar cliente';
+  document.getElementById('inputNombre').value = c.nombre;
+  document.getElementById('inputTelefono').value = c.telefono || '';
+  document.getElementById('inputDireccion').value = c.direccion || '';
+  document.getElementById('inputPrecio').value = c.precio;
+  document.getElementById('inputPrecio10').value = (c.precio10 !== undefined) ? c.precio10 : 3000;
+  document.getElementById('inputPrecioDisp').value = (c.precioDisp !== undefined) ? c.precioDisp : 8000;
+  renderDiasSelector('diasClienteSelector', c.dias);
+  renderSelectDespuesDe();
+  document.getElementById('inputDespuesDe').value = '';
+  abrirModal('modalCliente');
+}
+
+function insertarEnRuta(clienteId, dia, despuesDeId){
+  let lista = clientes
+    .filter(c=>c.id!==clienteId && c.dias.includes(dia))
+    .sort((a,b)=>(a.ordenPorDia[dia]||0)-(b.ordenPorDia[dia]||0))
+    .map(c=>c.id);
+
+  let insertIndex = lista.length;
+  if(despuesDeId){
+    const idx = lista.indexOf(despuesDeId);
+    if(idx !== -1) insertIndex = idx+1;
+  }
+  lista.splice(insertIndex, 0, clienteId);
+
+  lista.forEach((id,i)=>{
+    const c = clientes.find(x=>x.id===id);
+    c.ordenPorDia[dia] = i+1;
+  });
+}
+
+function moverAlFinalDelDia(clienteId, dia){
+  const c = clientes.find(x=>x.id===clienteId);
+  if(!c || !c.dias.includes(dia)) return;
+  const lista = clientes
+    .filter(x=>x.id!==clienteId && x.dias.includes(dia))
+    .sort((a,b)=>(a.ordenPorDia[dia]||0)-(b.ordenPorDia[dia]||0))
+    .map(x=>x.id);
+  lista.push(clienteId);
+  lista.forEach((id,i)=>{
+    const cli = clientes.find(x=>x.id===id);
+    cli.ordenPorDia[dia] = i+1;
+  });
+}
+
+function borrarCliente(){
+  const c = clientes.find(x=>x.id===clienteSeleccionado);
+  if(!c) return;
+  document.getElementById('nombreAEliminar').textContent = c.codigo + ' - ' + c.nombre;
+  abrirModal('modalConfirmarEliminar');
+}
+
+function confirmarBorrado(){
+  const c = clientes.find(x=>x.id===clienteSeleccionado);
+  ultimoClienteEliminado = c ? JSON.parse(JSON.stringify(c)) : null;
+  clientes = clientes.filter(c=>c.id!==clienteSeleccionado);
+  visitasHoy.delete(clienteSeleccionado);
+  cerrarModal('modalConfirmarEliminar');
+  cerrarModal('modalDetalle');
+  renderTodo();
+  mostrarBannerDeshacer(ultimoClienteEliminado ? ultimoClienteEliminado.nombre : '');
+}
+
+function mostrarBannerDeshacer(nombre){
+  const banner = document.getElementById('bannerDeshacer');
+  document.getElementById('bannerDeshacerTexto').textContent = 'Eliminaste a ' + nombre;
+  banner.classList.add('activo');
+  clearTimeout(window._deshacerTimeout);
+  window._deshacerTimeout = setTimeout(()=>{
+    banner.classList.remove('activo');
+    ultimoClienteEliminado = null;
+  }, 8000);
+}
+
+function deshacerEliminacion(){
+  if(!ultimoClienteEliminado) return;
+  clientes.push(ultimoClienteEliminado);
+  ultimoClienteEliminado = null;
+  document.getElementById('bannerDeshacer').classList.remove('activo');
+  clearTimeout(window._deshacerTimeout);
+  renderTodo();
+}
+
+function abrirDetalle(id){
+  clienteSeleccionado = id;
+  const c = clientes.find(x=>x.id===id);
+  document.getElementById('nombreDetalle').textContent = c.codigo + ' - ' + c.nombre;
+  document.getElementById('diasDetalle').textContent = c.dias.join(', ') || '-';
+  document.getElementById('inputPago').value = '';
+
+  const cont = document.getElementById('botonesContacto');
+  const tel = (c.telefono || '').replace(/[^0-9]/g,'');
+  if(tel){
+    cont.innerHTML = `
+      <a class="btn chico" style="text-decoration:none; text-align:center;" href="https://wa.me/${tel}">💬 WhatsApp</a>
+      <a class="btn chico outline" style="text-decoration:none; text-align:center;" href="tel:${tel}">📞 Llamar</a>
+    `;
+  } else {
+    cont.innerHTML = '';
+  }
+
+  renderDetalle(c);
+  abrirModal('modalDetalle');
+}
+
+function renderDetalle(c){
+  const saldoEl = document.getElementById('saldoDetalle');
+  const bidonesDebe = c.precio > 0 ? Math.round(c.saldo / c.precio) : 0;
+  saldoEl.textContent = '$' + c.saldo.toFixed(0) + (c.saldo > 0 && bidonesDebe > 0 ? ` (≈ ${bidonesDebe} bidón(es))` : '');
+  saldoEl.className = c.saldo > 0 ? 'deuda' : 'saldo-ok';
+  document.getElementById('envasesDetalle').textContent = c.envasesPendientes;
+
+  const hist = document.getElementById('historialCliente');
+  if(c.historial.length === 0){
+    hist.innerHTML = '<div class="empty-msg">Sin movimientos todavía</div>';
+  } else {
+    hist.innerHTML = c.historial.slice().reverse().map(h=>
+      `<div class="mov-item">
+        <span>${formatearMovimiento(h)}</span>
+        <span style="display:flex; flex-direction:column; align-items:flex-end; gap:2px; font-size:0.75em;">
+          <span>${isoAFechaLabel(h.fechaISO)}</span>
+          <span>${h.hora || '-'}</span>
+          <span style="display:flex; gap:4px; margin-top:2px;">
+            ${(h.id && h.tipo === 'compra') ? `<button class="btn chico outline" style="padding:2px 8px;" onclick="abrirBoleta('${c.id}','${h.id}')">🧾</button>` : ''}
+            ${(h.id && h.tipo !== 'pago') ? `<button class="btn chico outline" style="padding:2px 8px;" onclick="abrirEditarMovimiento('${c.id}','${h.id}')">✏️</button>` : ''}
+          </span>
+        </span>
+      </div>`
+    ).join('');
+  }
+}
+
+// ---------- MODAL STOCK (registrar compra) ----------
+function abrirStock(id){
+  if(stockCamion.b20 <= 0 && stockCamion.b10 <= 0 && stockCamion.disp <= 0){
+    alert('⚠️ Sin stock\n\nNo tenés bidones ni dispensers cargados en el camión.\n\nAndá a ☰ → "Stock del camión" y cargá lo que sacaste antes de empezar a vender.');
+    return;
+  }
+  clienteStockId = id;
+  const c = clientes.find(x=>x.id===id);
+  document.getElementById('nombreStock').textContent = c.codigo + ' - ' + c.nombre;
+  document.getElementById('saldoActualStock').textContent = '$' + c.saldo.toFixed(0);
+  document.getElementById('bidonesPoderStock').textContent = c.envasesPendientes;
+  document.getElementById('stkB20').value = '';
+  document.getElementById('stkB10').value = '';
+  document.getElementById('stkDisp').value = '';
+  document.getElementById('stkEnvases').value = '';
+  document.getElementById('stkEntregado').value = '';
+  actualizarPreviewStock();
+  renderHistorialStock(c);
+  abrirModal('modalStock');
+}
+
+function ajustarCantidadStock(inputId, delta){
+  const input = document.getElementById(inputId);
+  const actual = parseInt(input.value) || 0;
+  input.value = Math.max(0, actual + delta);
+  actualizarPreviewStock();
+}
+
+function renderHistorialStock(c){
+  const cont = document.getElementById('historialStock');
+  if(!c.historial || c.historial.length === 0){
+    cont.innerHTML = '<div class="empty-msg">Sin movimientos todavía</div>';
+    return;
+  }
+  cont.innerHTML = c.historial.slice().reverse().map(h=>
+    `<div class="mov-item">
+      <span>${formatearMovimiento(h)}</span>
+      <span style="display:flex; flex-direction:column; align-items:flex-end; gap:2px; font-size:0.75em;">
+        <span>${isoAFechaLabel(h.fechaISO)}</span>
+        <span>${h.hora || '-'}</span>
+        ${(h.id && h.tipo === 'compra') ? `<button class="btn chico outline" style="padding:2px 8px; margin-top:2px;" onclick="abrirBoleta('${c.id}','${h.id}')">🧾</button>` : ''}
+      </span>
+    </div>`
+  ).join('');
+}
+
+function actualizarPreviewStock(){
+  const c = clientes.find(x=>x.id===clienteStockId);
+  if(!c) return;
+  const b20 = parseInt(document.getElementById('stkB20').value) || 0;
+  const b10 = parseInt(document.getElementById('stkB10').value) || 0;
+  const disp = parseInt(document.getElementById('stkDisp').value) || 0;
+  const total = b20*c.precio + b10*(c.precio10||0) + disp*(c.precioDisp||0);
+  document.getElementById('stkPreview').textContent = '$' + total.toFixed(0);
+}
+
+function confirmarStock(tipo){
+  const c = clientes.find(x=>x.id===clienteStockId);
+  const b20 = parseInt(document.getElementById('stkB20').value) || 0;
+  const b10 = parseInt(document.getElementById('stkB10').value) || 0;
+  const disp = parseInt(document.getElementById('stkDisp').value) || 0;
+  const envases = parseInt(document.getElementById('stkEnvases').value) || 0;
+  if(b20 === 0 && b10 === 0 && disp === 0 && envases === 0) return;
+
+  if(b20 > stockCamion.b20 || b10 > stockCamion.b10 || disp > stockCamion.disp){
+    alert(`⚠️ Sin stock suficiente\n\nTe quedan: ${stockCamion.b20} de 20L, ${stockCamion.b10} de 10L, ${stockCamion.disp} dispensers.\n\nAjustá la cantidad o cargá más stock desde ☰ → "Stock del camión".`);
+    return;
+  }
+
+  const costo = b20*c.precio + b10*(c.precio10||0) + disp*(c.precioDisp||0);
+  const bidones = b20 + b10 + disp; // total de envases llenos entregados (para stock de envases pendientes)
+  let montoPagado = 0;
+  if(tipo === 'efectivo' || tipo === 'transferencia'){
+    montoPagado = costo;
+  } else if(tipo === 'entregado'){
+    montoPagado = parseFloat(document.getElementById('stkEntregado').value) || 0;
+  }
+
+  const ahora = new Date();
+  const entry = {
+    id: generarId(),
+    tipo: 'compra',
+    fechaISO: todayISO(),
+    hora: ahora.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
+    b20, b10, disp, bidones, envases, costo,
+    formaPago: tipo,
+    montoPagado,
+    transferenciaConfirmada: (tipo === 'transferencia_pendiente') ? false : undefined
+  };
+  c.historial.push(entry);
+  aplicarEfectoMovimiento(c, entry);
+
+  stockCamion.b20 = Math.max(0, stockCamion.b20 - b20);
+  stockCamion.b10 = Math.max(0, stockCamion.b10 - b10);
+  stockCamion.disp = Math.max(0, stockCamion.disp - disp);
+
+  visitasHoy.add(c.id);
+  moverAlFinalDelDia(c.id, diaSeleccionado);
+
+  cerrarModal('modalStock');
+  renderTodo();
+}
+
+function marcarNoCompra(){
+  const c = clientes.find(x=>x.id===clienteStockId);
+  const ahora = new Date();
+  const entry = {
+    id: generarId(),
+    tipo: 'no_compra',
+    fechaISO: todayISO(),
+    hora: ahora.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})
+  };
+  c.historial.push(entry);
+  visitasHoy.add(c.id);
+  moverAlFinalDelDia(c.id, diaSeleccionado);
+  cerrarModal('modalStock');
+  renderTodo();
+}
+
+// ---------- PAGOS (saldar deuda vieja) ----------
+function registrarPago(){
+  const c = clientes.find(x=>x.id===clienteSeleccionado);
+  const monto = parseFloat(document.getElementById('inputPago').value) || 0;
+  if(monto <= 0) return;
+
+  c.saldo -= monto;
+  const ahora = new Date();
+  const entry = {
+    id: generarId(),
+    tipo: 'pago',
+    fechaISO: todayISO(),
+    hora: ahora.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
+    montoPagado: monto
+  };
+  c.historial.push(entry);
+
+  cobradoHoy += monto;
+
+  document.getElementById('inputPago').value = '';
+  renderDetalle(c);
+  renderTodo();
+}
+
+// ---------- EFECTOS DE MOVIMIENTOS (aplicar / revertir) ----------
+// ---------- TRANSFERENCIAS PENDIENTES ----------
+function marcarTransferenciaRecibida(clienteId, entryId){
+  const c = clientes.find(x=>x.id===clienteId);
+  if(!c) return;
+  const entry = c.historial.find(h=>h.id===entryId);
+  if(!entry || entry.transferenciaConfirmada) return;
+
+  c.saldo -= entry.costo;
+  entry.transferenciaConfirmada = true;
+  entry.montoPagado = entry.costo;
+
+  cobradoHoy += entry.costo;
+  transferenciaHoy += entry.costo;
+
+  guardarEstado();
+  renderTransferenciasPendientes();
+  renderTodo();
+}
+
+function listaTransferenciasPendientes(){
+  const pendientes = [];
+  clientes.forEach(c=>{
+    c.historial.forEach(h=>{
+      if(h.formaPago === 'transferencia_pendiente' && !h.transferenciaConfirmada){
+        pendientes.push({cliente: c, entry: h});
+      }
+    });
+  });
+  pendientes.sort((a,b)=> (a.entry.fechaISO+a.entry.hora).localeCompare(b.entry.fechaISO+b.entry.hora));
+  return pendientes;
+}
+
+function mostrarTransferenciasPendientes(){
+  cerrarMenus();
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-transferenciasPendientes').classList.add('active');
+  renderTransferenciasPendientes();
+}
+
+function renderTransferenciasPendientes(){
+  const pendientes = listaTransferenciasPendientes();
+  const cont = document.getElementById('listaTransferenciasPendientes');
+  const hoy = todayISO();
+
+  if(pendientes.length === 0){
+    cont.innerHTML = '<div class="empty-msg">No tenés transferencias pendientes 🎉</div>';
+  } else {
+    cont.innerHTML = pendientes.map(p=>{
+      const esDeHoy = p.entry.fechaISO === hoy;
+      const tel = (p.cliente.telefono || '').replace(/[^0-9]/g,'');
+      const mensaje = `Hola ${p.cliente.nombre}! Te recuerdo que quedó pendiente la transferencia de $${p.entry.costo.toFixed(0)} del bidón del ${isoAFechaLabel(p.entry.fechaISO)}. Cualquier cosa mandame el comprobante. ¡Gracias!`;
+      const linkWhatsApp = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}` : null;
+      return `
+        <div class="card" style="${esDeHoy ? '' : 'border:2px solid var(--rojo-deuda, #c0392b);'}">
+          <h3>${p.cliente.codigo} - ${p.cliente.nombre} ${!esDeHoy ? '⚠️' : ''}</h3>
+          <div class="row"><span>Monto:</span><strong>$${p.entry.costo.toFixed(0)}</strong></div>
+          <div class="row"><span>Fecha del bidón:</span><span>${isoAFechaLabel(p.entry.fechaISO)} ${p.entry.hora||''}</span></div>
+          <div class="btn-row" style="margin-top:8px;">
+            <button class="btn verde chico" onclick="marcarTransferenciaRecibida('${p.cliente.id}','${p.entry.id}')">✅ Ya la recibí</button>
+            ${linkWhatsApp ? `<a class="btn chico outline" style="text-decoration:none; text-align:center;" href="${linkWhatsApp}">📲 Recordar</a>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+function aplicarEfectoMovimiento(c, entry){
+  if(entry.tipo === 'compra'){
+    c.saldo += entry.costo;
+    c.saldo -= entry.montoPagado;
+    c.envasesPendientes += entry.bidones - entry.envases;
+    if(c.envasesPendientes < 0) c.envasesPendientes = 0;
+    if(entry.fechaISO === todayISO()){
+      ventaHoy += entry.costo;
+      cobradoHoy += entry.montoPagado;
+      if(entry.formaPago==='efectivo') efectivoHoy += entry.montoPagado;
+      if(entry.formaPago==='transferencia') transferenciaHoy += entry.montoPagado;
+      if(entry.formaPago==='entregado') entregadoHoy += entry.montoPagado;
+      const faltante = entry.costo - entry.montoPagado;
+      if(faltante > 0) deudaGeneradaHoy += faltante;
+      envasesEntregadosHoy += entry.bidones;
+      envasesRecibidosHoy += entry.envases;
+      b20VendidosHoy += (entry.b20 || 0);
+      b10VendidosHoy += (entry.b10 || 0);
+      dispVendidosHoy += (entry.disp || 0);
+    }
+  } else if(entry.tipo === 'pago'){
+    if(entry.fechaISO === todayISO()) cobradoHoy += entry.montoPagado;
+  }
+}
+
+function revertirEfectoMovimiento(c, entry){
+  if(entry.tipo === 'compra'){
+    c.saldo -= entry.costo;
+    c.saldo += entry.montoPagado;
+    c.envasesPendientes -= entry.bidones - entry.envases;
+    if(c.envasesPendientes < 0) c.envasesPendientes = 0;
+    if(entry.fechaISO === todayISO()){
+      ventaHoy -= entry.costo;
+      cobradoHoy -= entry.montoPagado;
+      if(entry.formaPago==='efectivo') efectivoHoy -= entry.montoPagado;
+      if(entry.formaPago==='transferencia') transferenciaHoy -= entry.montoPagado;
+      if(entry.formaPago==='entregado') entregadoHoy -= entry.montoPagado;
+      const faltante = entry.costo - entry.montoPagado;
+      if(faltante > 0) deudaGeneradaHoy -= faltante;
+      envasesEntregadosHoy -= entry.bidones;
+      envasesRecibidosHoy -= entry.envases;
+      b20VendidosHoy -= (entry.b20 || 0);
+      b10VendidosHoy -= (entry.b10 || 0);
+      dispVendidosHoy -= (entry.disp || 0);
+    }
+  } else if(entry.tipo === 'pago'){
+    if(entry.fechaISO === todayISO()) cobradoHoy -= entry.montoPagado;
+  }
+}
+
+// ---------- BOLETA / COMPROBANTE ----------
+function abrirBoleta(clienteId, entryId){
+  const c = clientes.find(x=>x.id===clienteId);
+  const entry = c.historial.find(h=>h.id===entryId);
+  if(!c || !entry || entry.tipo !== 'compra') return;
+
+  const lineas = [];
+  lineas.push('🧾 LA NORIA - Comprobante');
+  lineas.push('Fecha: ' + isoAFechaLabel(entry.fechaISO) + ' ' + (entry.hora||''));
+  lineas.push('Cliente: ' + c.nombre);
+  if(c.direccion) lineas.push('Dirección: ' + c.direccion);
+  lineas.push('');
+  if(entry.b20) lineas.push(`Bidón 20 Lts: ${entry.b20} x $${c.precio} = $${(entry.b20*c.precio).toFixed(0)}`);
+  if(entry.b10) lineas.push(`Bidón 10-12 Lts: ${entry.b10} x $${(c.precio10||0)} = $${(entry.b10*(c.precio10||0)).toFixed(0)}`);
+  if(entry.disp) lineas.push(`Dispenser: ${entry.disp} x $${(c.precioDisp||0)} = $${(entry.disp*(c.precioDisp||0)).toFixed(0)}`);
+  if(entry.envases) lineas.push(`Envases vacíos devueltos: ${entry.envases}`);
+  lineas.push('');
+  lineas.push('TOTAL: $' + entry.costo.toFixed(0));
+  const formaPagoTexto = entry.formaPago==='efectivo' ? 'Efectivo'
+    : entry.formaPago==='transferencia' ? 'Transferencia'
+    : entry.formaPago==='transferencia_pendiente' ? 'Transferencia (pendiente de confirmar)'
+    : 'Entregado parcial / fiado';
+  lineas.push('Forma de pago: ' + formaPagoTexto);
+  if(entry.montoPagado < entry.costo){
+    lineas.push('Saldo pendiente de esta compra: $' + (entry.costo - entry.montoPagado).toFixed(0));
+  }
+  lineas.push('');
+  lineas.push('¡Gracias por su compra! - LA NORIA');
+
+  const texto = lineas.join('\n');
+  document.getElementById('boletaTexto').value = texto;
+
+  const tel = (c.telefono || '').replace(/[^0-9]/g,'');
+  const btn = document.getElementById('btnBoletaWhatsApp');
+  if(tel){
+    btn.href = `https://wa.me/${tel}?text=${encodeURIComponent(texto)}`;
+    btn.style.display = 'block';
+  } else {
+    btn.style.display = 'none';
+  }
+
+  abrirModal('modalBoleta');
+}
+
+function copiarBoleta(){
+  const textarea = document.getElementById('boletaTexto');
+  textarea.select();
+  try{
+    navigator.clipboard.writeText(textarea.value).then(()=>{
+      alert('Copiado ✅ Ya podés pegarlo donde quieras (otro WhatsApp, notas, etc).');
+    }).catch(()=>{
+      document.execCommand('copy');
+      alert('Copiado ✅');
+    });
+  }catch(e){
+    document.execCommand('copy');
+    alert('Copiado ✅');
+  }
+}
+
+function formatearMovimiento(entry){
+  if(!entry) return '';
+  if(entry.texto) return entry.texto; // movimiento viejo, guardado antes de esta versión
+  if(entry.tipo === 'no_compra') return 'No compró';
+  if(entry.tipo === 'pago') return `Pagó $${entry.montoPagado}`;
+  const etiquetaPago = entry.formaPago === 'efectivo' ? 'Efectivo · Pagado'
+    : entry.formaPago === 'transferencia' ? 'Transferencia · Pagado'
+    : entry.formaPago === 'transferencia_pendiente' ? (entry.transferenciaConfirmada ? 'Transferencia · Pagado (confirmada)' : '🕒 Transferencia pendiente')
+    : (entry.montoPagado > 0 ? `Entregó $${entry.montoPagado}` : 'Fiado');
+
+  const items = [];
+  if(entry.b20) items.push(`${entry.b20} de 20L`);
+  if(entry.b10) items.push(`${entry.b10} de 10L`);
+  if(entry.disp) items.push(`${entry.disp} dispenser`);
+  const detalleItems = items.length > 0 ? items.join(' + ') : `${entry.bidones||0} bidón(es)`;
+
+  return `Compró ${detalleItems} ($${entry.costo}) · ${etiquetaPago}${entry.envases>0 ? ' · devolvió '+entry.envases+' envase(s)' : ''}`;
+}
+
+// ---------- EDITAR UN MOVIMIENTO DEL HISTORIAL ----------
+let movimientoEditando = null;
+
+function abrirEditarMovimiento(clienteId, entryId){
+  const c = clientes.find(x=>x.id===clienteId);
+  const entry = c.historial.find(h=>h.id===entryId);
+  if(!entry || entry.tipo === 'pago'){ alert('Los pagos no se pueden editar todavía, solo eliminar y volver a cargar.'); return; }
+  movimientoEditando = { clienteId, entryId };
+
+  document.getElementById('fechaEditMov').textContent = 'Fecha: ' + isoAFechaLabel(entry.fechaISO);
+  setTipoEdicion(entry.tipo);
+  if(entry.tipo === 'compra'){
+    document.getElementById('editB20').value = entry.b20 || 0;
+    document.getElementById('editB10').value = entry.b10 || 0;
+    document.getElementById('editDisp').value = entry.disp || 0;
+    document.getElementById('editEnvases').value = entry.envases;
+    document.getElementById('editFormaPago').value = entry.formaPago;
+    document.getElementById('editMontoEntregado').value = entry.montoPagado;
+    toggleEditMontoEntregado();
+  }
+  abrirModal('modalEditarMov');
+}
+
+function setTipoEdicion(tipo){
+  const esCompra = tipo === 'compra';
+  document.getElementById('camposEditCompra').style.display = esCompra ? 'block' : 'none';
+  document.getElementById('btnEditCompro').className = 'btn' + (esCompra ? '' : ' outline');
+  document.getElementById('btnEditNoCompro').className = 'btn' + (esCompra ? ' outline' : '');
+  document.getElementById('camposEditCompra').dataset.tipo = tipo;
+}
+
+function toggleEditMontoEntregado(){
+  const forma = document.getElementById('editFormaPago').value;
+  document.getElementById('editMontoEntregadoWrap').style.display = forma === 'entregado' ? 'block' : 'none';
+}
+
+function guardarEdicionMovimiento(){
+  if(!movimientoEditando) return;
+  const c = clientes.find(x=>x.id===movimientoEditando.clienteId);
+  const entry = c.historial.find(h=>h.id===movimientoEditando.entryId);
+  const viejo = entry.tipo === 'compra' ? {b20: entry.b20||0, b10: entry.b10||0, disp: entry.disp||0} : {b20:0,b10:0,disp:0};
+
+  revertirEfectoMovimiento(c, entry);
+
+  const nuevoTipo = document.getElementById('camposEditCompra').dataset.tipo;
+  entry.tipo = nuevoTipo;
+  let nuevo = {b20:0, b10:0, disp:0};
+  if(nuevoTipo === 'compra'){
+    const b20 = parseInt(document.getElementById('editB20').value) || 0;
+    const b10 = parseInt(document.getElementById('editB10').value) || 0;
+    const disp = parseInt(document.getElementById('editDisp').value) || 0;
+    const envases = parseInt(document.getElementById('editEnvases').value) || 0;
+    const formaPago = document.getElementById('editFormaPago').value;
+    const costo = b20*c.precio + b10*(c.precio10||0) + disp*(c.precioDisp||0);
+    let montoPagado = 0;
+    if(formaPago === 'efectivo' || formaPago === 'transferencia'){
+      montoPagado = costo;
+    } else if(formaPago === 'transferencia_pendiente'){
+      montoPagado = 0;
+    } else {
+      montoPagado = parseFloat(document.getElementById('editMontoEntregado').value) || 0;
+    }
+    entry.b20 = b20; entry.b10 = b10; entry.disp = disp;
+    entry.bidones = b20 + b10 + disp;
+    entry.envases = envases;
+    entry.costo = costo;
+    entry.formaPago = formaPago;
+    entry.montoPagado = montoPagado;
+    entry.transferenciaConfirmada = (formaPago === 'transferencia_pendiente') ? false : undefined;
+    nuevo = {b20, b10, disp};
+  }
+
+  // Corregimos el stock del camión por la diferencia (solo si el movimiento es de hoy)
+  if(entry.fechaISO === todayISO()){
+    stockCamion.b20 = Math.max(0, stockCamion.b20 + viejo.b20 - nuevo.b20);
+    stockCamion.b10 = Math.max(0, stockCamion.b10 + viejo.b10 - nuevo.b10);
+    stockCamion.disp = Math.max(0, stockCamion.disp + viejo.disp - nuevo.disp);
+  }
+
+  aplicarEfectoMovimiento(c, entry);
+
+  movimientoEditando = null;
+  cerrarModal('modalEditarMov');
+  renderDetalle(c);
+  renderTodo();
+}
+
+// ---------- ANULAR VENTA (deshacer del todo) ----------
+function confirmarAnularMovimiento(){
+  if(!movimientoEditando) return;
+  abrirModal('modalConfirmarAnular');
+}
+
+function anularMovimiento(){
+  if(!movimientoEditando) return;
+  const c = clientes.find(x=>x.id===movimientoEditando.clienteId);
+  const entry = c.historial.find(h=>h.id===movimientoEditando.entryId);
+  if(!c || !entry) return;
+
+  // Revertimos todo lo que ese movimiento haya sumado (venta, cobrado, deuda, envases)
+  revertirEfectoMovimiento(c, entry);
+
+  // Si era una venta de hoy, le devolvemos los bidones al stock del camión
+  if(entry.tipo === 'compra' && entry.fechaISO === todayISO()){
+    stockCamion.b20 += (entry.b20 || 0);
+    stockCamion.b10 += (entry.b10 || 0);
+    stockCamion.disp += (entry.disp || 0);
+  }
+
+  c.historial = c.historial.filter(h=>h.id !== entry.id);
+
+  movimientoEditando = null;
+  cerrarModal('modalConfirmarAnular');
+  cerrarModal('modalEditarMov');
+  renderDetalle(c);
+  renderTodo();
+}
+
+// ---------- VISITAS POR FECHA ----------
+function cambiarSubtabHistorial(sub){
+  const esFecha = sub === 'fecha';
+  document.getElementById('histPorFecha').style.display = esFecha ? 'block' : 'none';
+  document.getElementById('histPorCliente').style.display = esFecha ? 'none' : 'block';
+  document.getElementById('btnHistPorFecha').className = 'btn' + (esFecha ? '' : ' outline');
+  document.getElementById('btnHistPorCliente').className = 'btn' + (esFecha ? ' outline' : '');
+  if(!esFecha) renderHistorialPorCliente();
+}
+
+function renderHistorialPorCliente(){
+  const termino = (document.getElementById('inputBuscarClienteHist').value || '').trim().toLowerCase();
+  const cont = document.getElementById('listaHistorialPorCliente');
+  if(!termino){
+    cont.innerHTML = '<div class="empty-msg">Escribí el nombre de un cliente para ver sus compras</div>';
+    return;
+  }
+  const encontrados = clientes.filter(c=>c.nombre.toLowerCase().includes(termino));
+  if(encontrados.length === 0){
+    cont.innerHTML = '<div class="empty-msg">No se encontró ningún cliente</div>';
+    return;
+  }
+  cont.innerHTML = encontrados.map(c=>{
+    const movimientos = c.historial.slice().reverse().map(h=>
+      `<div class="mov-item"><span>${formatearMovimiento(h)}</span><span>${isoAFechaLabel(h.fechaISO)} ${h.hora||''}</span></div>`
+    ).join('') || '<div class="empty-msg">Sin movimientos todavía</div>';
+    const fueraDeRuta = !c.dias.includes(diaSeleccionado);
+    const yaAgregado = clientesFueraRutaHoy.has(c.id);
+    const botonAgregar = (fueraDeRuta && !yaAgregado)
+      ? `<button class="btn chico naranja" style="margin-top:8px;" onclick="agregarAFueraDeReparto('${c.id}')">🚚➕ Agregar a fuera de reparto de hoy</button>`
+      : (fueraDeRuta && yaAgregado ? `<div style="color:var(--verde-pago); font-weight:bold; margin-top:8px;">✅ Ya está en fuera de reparto de hoy</div>` : '');
+    return `<div class="card"><h3>${c.codigo} - ${c.nombre}</h3><div class="movimientos">${movimientos}</div>${botonAgregar}</div>`;
+  }).join('');
+}
+
+function mostrarHistorialFecha(){
+  cerrarMenus();
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-historialFecha').classList.add('active');
+  document.getElementById('inputFechaHistorial').value = todayISO();
+  cambiarSubtabHistorial('fecha');
+  renderHistorialFecha();
+}
+
+function renderHistorialFecha(){
+  const fecha = document.getElementById('inputFechaHistorial').value;
+  const cont = document.getElementById('listaHistorialFecha');
+  if(!fecha){ cont.innerHTML = ''; return; }
+
+  let resultados = [];
+  clientes.forEach(c=>{
+    c.historial.filter(h=>h.fechaISO===fecha).forEach(h=>{
+      resultados.push({ cliente: c, entry: h });
+    });
+  });
+
+  if(resultados.length === 0){
+    cont.innerHTML = '<div class="empty-msg">No hay movimientos registrados ese día</div>';
+    return;
+  }
+  cont.innerHTML = resultados.map(r=>`
+    <div class="card">
+      <h3>${r.cliente.codigo} - ${r.cliente.nombre}</h3>
+      <div class="row"><span>${formatearMovimiento(r.entry)}</span></div>
+      <button class="btn chico outline" onclick="abrirEditarMovimiento('${r.cliente.id}','${r.entry.id}')">✏️ Corregir</button>
+    </div>
+  `).join('');
+}
+
+// ---------- STOCK DEL CAMION ----------
+function mostrarStockCamion(){
+  cerrarMenus();
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-stockCamion').classList.add('active');
+  renderStockCamion();
+}
+
+function renderStockCamion(){
+  document.getElementById('stockB20').textContent = stockCamion.b20;
+  document.getElementById('stockB10').textContent = stockCamion.b10;
+  document.getElementById('stockDisp').textContent = stockCamion.disp;
+  document.getElementById('stockEnvasesVaciosHoy').textContent = envasesRecibidosHoy;
+}
+
+function sumarStock(tipo){
+  const inputId = tipo==='b20' ? 'inputSumarB20' : tipo==='b10' ? 'inputSumarB10' : 'inputSumarDisp';
+  const cantidad = parseInt(document.getElementById(inputId).value) || 0;
+  if(cantidad === 0) return;
+  stockCamion[tipo] = Math.max(0, (stockCamion[tipo]||0) + cantidad);
+  document.getElementById(inputId).value = '';
+  renderStockCamion();
+  guardarEstado();
+}
+
+function cargarStockInicial(){
+  const b20 = parseInt(document.getElementById('inputStockB20').value);
+  const b10 = parseInt(document.getElementById('inputStockB10').value);
+  const disp = parseInt(document.getElementById('inputStockDisp').value);
+  if(!isNaN(b20)) stockCamion.b20 = b20;
+  if(!isNaN(b10)) stockCamion.b10 = b10;
+  if(!isNaN(disp)) stockCamion.disp = disp;
+  document.getElementById('inputStockB20').value = '';
+  document.getElementById('inputStockB10').value = '';
+  document.getElementById('inputStockDisp').value = '';
+  renderStockCamion();
+  guardarEstado();
+}
+
+function ajustarStockManual(tipo, delta){
+  stockCamion[tipo] = Math.max(0, (stockCamion[tipo]||0) + delta);
+  renderStockCamion();
+  guardarEstado();
+}
+
+// ---------- RESPALDO DE DATOS ----------
+// ---------- EXPORTAR A EXCEL (CSV, se abre directo en Excel/Sheets) ----------
+function exportarExcel(){
+  cerrarMenus();
+  const filas = [];
+  filas.push(['Fecha','Hora','Cliente','Codigo','Direccion','Tipo movimiento','Bidones 20L','Bidones 10-12L','Dispenser','Envases devueltos','Costo','Forma de pago','Monto pagado','Saldo actual del cliente']);
+
+  clientes.forEach(c=>{
+    c.historial.forEach(h=>{
+      if(h.texto || !h.tipo) return; // saltar movimientos viejos sin estructura
+      const tipoLabel = h.tipo === 'compra' ? 'Venta' : h.tipo === 'no_compra' ? 'No compró' : 'Pago';
+      const formaPagoLabel = h.formaPago === 'efectivo' ? 'Efectivo'
+        : h.formaPago === 'transferencia' ? 'Transferencia'
+        : h.formaPago === 'transferencia_pendiente' ? (h.transferenciaConfirmada ? 'Transferencia (confirmada)' : 'Transferencia (pendiente)')
+        : h.formaPago === 'entregado' ? 'Entregado parcial / fiado'
+        : '';
+      filas.push([
+        h.fechaISO || '',
+        h.hora || '',
+        c.nombre,
+        c.codigo,
+        c.direccion || '',
+        tipoLabel,
+        h.b20 || 0,
+        h.b10 || 0,
+        h.disp || 0,
+        h.envases || 0,
+        h.costo !== undefined ? h.costo.toFixed(0) : '',
+        formaPagoLabel,
+        h.montoPagado !== undefined ? h.montoPagado.toFixed(0) : '',
+        c.saldo.toFixed(0)
+      ]);
+    });
+  });
+
+  const csv = filas.map(fila => fila.map(val=>{
+    const str = String(val).replace(/"/g,'""');
+    return /[";\n]/.test(str) ? `"${str}"` : str;
+  }).join(';')).join('\n');
+
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `la_noria_movimientos_${todayISO()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportarRespaldo(){
+  cerrarMenus();
+  const estado = construirEstadoActual();
+  const blob = new Blob([JSON.stringify(estado, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const fecha = todayISO();
+  a.href = url;
+  a.download = `respaldo_la_noria_${fecha}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Envía el respaldo por Drive, Gmail, WhatsApp, etc. usando el selector nativo del celular
+function compartirRespaldo(){
+  cerrarMenus();
+  const estado = construirEstadoActual();
+  const contenido = JSON.stringify(estado, null, 2);
+  const fecha = todayISO();
+  const nombreArchivo = `respaldo_la_noria_${fecha}.json`;
+
+  try{
+    const archivo = new File([contenido], nombreArchivo, {type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[archivo]})){
+      navigator.share({
+        files: [archivo],
+        title: 'Respaldo LA NORIA',
+        text: 'Respaldo de datos de LA NORIA - ' + isoAFechaLabel(fecha)
+      }).catch(()=>{ /* el usuario cerró el selector, no pasa nada */ });
+      return;
+    }
+  }catch(e){ /* seguimos al fallback */ }
+
+  alert('Tu celular no permite compartir el archivo directamente desde acá.\n\nSe va a descargar a la carpeta Descargas — desde ahí lo podés subir a Drive o mandarlo por Gmail a mano.');
+  exportarRespaldo();
+}
+
+function restaurarRespaldo(event){
+  const archivo = event.target.files[0];
+  if(!archivo) return;
+  const lector = new FileReader();
+  lector.onload = function(e){
+    try{
+      const estado = JSON.parse(e.target.result);
+      aplicarEstadoDesdeObjeto(estado);
+      guardarEstado();
+      renderTodo();
+      alert('Respaldo restaurado con éxito');
+    }catch(err){
+      alert('No se pudo leer ese archivo de respaldo');
+    }
+  };
+  lector.readAsText(archivo);
+  event.target.value = '';
+}
+
+// ---------- DESHACER ELIMINACION ----------
+// Clientes agregados a "fuera de reparto" durante este reparto (no están programados para hoy)
+let clientesFueraRutaHoy = new Set();
+
+function tarjetaCliente(c, i, mostrarBotonesStock){
+  const visitado = visitasHoy.has(c.id);
+  const fueraDeRuta = !c.dias.includes(diaSeleccionado);
+  const yaAgregado = clientesFueraRutaHoy.has(c.id);
+  const claseDeuda = c.saldo > 0 ? 'tiene-deuda' : 'al-dia';
+  return `
+    <div class="card ${claseDeuda}">
+      <div onclick="abrirDetalle('${c.id}')">
+        <h3>${i!=null ? (i+1)+'. ' : ''}${c.codigo} - ${c.nombre} ${visitado ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
+        <div class="row"><span>${c.direccion || 'Sin dirección'}</span></div>
+        <div class="row"><span>Deuda:</span><span class="${c.saldo>0?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
+        <div class="row"><span>Envases que debe:</span><span>${c.envasesPendientes}</span></div>
+      </div>
+      ${mostrarBotonesStock ? `
+      <div class="btn-row">
+        <button class="btn chico" onclick="abrirStock('${c.id}')">📦 Stock</button>
+        <button class="btn chico outline" onclick="clienteStockId='${c.id}'; marcarNoCompra()">No compra</button>
+      </div>` : ''}
+      ${(fueraDeRuta && !yaAgregado) ? `
+      <button class="btn chico naranja" style="margin-top:6px;" onclick="agregarAFueraDeReparto('${c.id}')">🚚➕ Agregar a fuera de reparto de hoy</button>` : ''}
+    </div>
+  `;
+}
+
+// ---------- RENDER POR VISITAR (los que faltan del reparto de hoy) ----------
+function renderPorVisitar(){
+  document.getElementById('tituloDiaHoy').textContent = 'Ruta · ' + diaSeleccionado + (diaSeleccionado===diaDeHoy() ? ' (hoy)' : '');
+  const cont = document.getElementById('listaPorVisitar');
+  const filtrados = clientes
+    .filter(c=>c.dias.includes(diaSeleccionado) && !visitasHoy.has(c.id) && pasaFiltro(c))
+    .sort((a,b)=> (a.ordenPorDia[diaSeleccionado]||0) - (b.ordenPorDia[diaSeleccionado]||0));
+
+  if(filtrados.length===0){
+    cont.innerHTML = '<div class="empty-msg">Ya atendiste a todos los clientes de este día 🎉</div>';
+    return;
+  }
+  cont.innerHTML = filtrados.map((c,i)=>tarjetaCliente(c,i,true)).join('');
+}
+
+// ---------- RENDER ATENDIDOS (los que ya visitaste del reparto de hoy) ----------
+function renderAtendidos(){
+  const cont = document.getElementById('listaAtendidos');
+  const filtrados = clientes
+    .filter(c=>visitasHoy.has(c.id) && pasaFiltro(c))
+    .sort((a,b)=> (a.ordenPorDia[diaSeleccionado]||0) - (b.ordenPorDia[diaSeleccionado]||0));
+
+  if(filtrados.length===0){
+    cont.innerHTML = '<div class="empty-msg">Todavía no atendiste a nadie hoy</div>';
+    return;
+  }
+  cont.innerHTML = filtrados.map((c,i)=>tarjetaCliente(c,i,true)).join('');
+}
+
+// ---------- RENDER FUERA DE REPARTO (clientes no programados hoy) ----------
+function renderFueraDeReparto(){
+  const cont = document.getElementById('listaFueraReparto');
+  const termino = (document.getElementById('inputBuscadorFuera').value || '').trim().toLowerCase();
+  
+  // Primero, mostrar los que ya agregaste (pero todavía sin atender)
+  const agregados = clientes.filter(c=>clientesFueraRutaHoy.has(c.id) && !visitasHoy.has(c.id));
+  
+  // Luego, filtrar disponibles según búsqueda
+  let disponibles = clientes.filter(c=>!c.dias.includes(diaSeleccionado) && !clientesFueraRutaHoy.has(c.id) && !visitasHoy.has(c.id));
+  if(termino){
+    disponibles = disponibles.filter(c=>
+      c.nombre.toLowerCase().includes(termino) ||
+      c.codigo.toString().includes(termino) ||
+      (c.direccion||'').toLowerCase().includes(termino)
+    );
+  }
+
+  let html = '';
+  
+  if(agregados.length > 0){
+    html += '<div style="margin-bottom:20px;"><div class="card" style="background:var(--verde-pago); color:white;"><strong>✅ Agregados a fuera de reparto hoy (' + diaSeleccionado + ')</strong></div>' + 
+      agregados.map(c=>tarjetaCliente(c,null,true)).join('') + '</div>';
+  }
+
+  if(termino === '' && disponibles.length === 0 && agregados.length === 0){
+    html = '<div class="empty-msg">Escribí el nombre, código o dirección de un cliente para buscarlo y agregarlo</div>';
+  } else if(disponibles.length === 0 && termino){
+    html += '<div class="empty-msg">No encontramos clientes con eso</div>';
+  } else if(disponibles.length > 0){
+    if(termino) html += '<div class="card" style="background:var(--celeste); color:white;"><strong>Resultados encontrados</strong></div>';
+    html += disponibles.map(c=>`
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+          <div onclick="abrirDetalle('${c.id}')" style="flex:1; cursor:pointer;">
+            <h3 style="margin:0 0 6px;">${c.codigo} - ${c.nombre}</h3>
+            <div style="font-size:0.9em;">${c.direccion || ''}</div>
+            <div style="font-size:0.8em; color:#666; margin-top:4px;">Saldo: <strong>$${c.saldo.toFixed(0)}</strong></div>
+          </div>
+          <button class="btn chico naranja" onclick="agregarAFueraDeReparto('${c.id}')">➕ Agregar</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  cont.innerHTML = html;
+}
+
+function agregarAFueraDeReparto(clienteId){
+  clientesFueraRutaHoy.add(clienteId);
+  document.getElementById('inputBuscadorFuera').value = '';
+  renderFueraDeReparto();
+  renderTodo();
+}
+
+// ---------- ESTADISTICAS ----------
+function renderEstadisticas(){
+  const totalDia = clientes.filter(c=>c.dias.includes(diaSeleccionado)).length;
+  document.getElementById('estVenta').textContent = '$' + ventaHoy.toFixed(0);
+  document.getElementById('estEfectivo').textContent = '$' + efectivoHoy.toFixed(0);
+  document.getElementById('estTransferencia').textContent = '$' + transferenciaHoy.toFixed(0);
+  document.getElementById('estDeuda').textContent = '$' + deudaGeneradaHoy.toFixed(0);
+  document.getElementById('estVisitados').textContent = visitasHoy.size + '/' + totalDia;
+  document.getElementById('estEntregados').textContent = envasesEntregadosHoy;
+  document.getElementById('estRecibidos').textContent = envasesRecibidosHoy;
+  document.getElementById('estClientesTotal').textContent = clientes.length;
+  document.getElementById('estB20').textContent = b20VendidosHoy;
+  document.getElementById('estB10').textContent = b10VendidosHoy;
+  document.getElementById('estDisp').textContent = dispVendidosHoy;
+
+  const cerrado = resumenesDiarios[todayISO()];
+  document.getElementById('estadoCierreHoy').textContent = cerrado
+    ? `Reparto de hoy cerrado (última vez a las ${cerrado.hora || '-'}). Si seguís vendiendo, podés volver a cerrarlo para actualizar el total.`
+    : 'Todavía no cerraste el reparto de hoy.';
+}
+
+// ---------- CERRAR REPARTO DEL DIA ----------
+function cerrarRepartoDelDia(){
+  const fecha = todayISO();
+  resumenesDiarios[fecha] = {
+    fecha,
+    venta: ventaHoy,
+    efectivo: efectivoHoy,
+    transferencia: transferenciaHoy,
+    deuda: deudaGeneradaHoy,
+    envasesEntregados: envasesEntregadosHoy,
+    envasesRecibidos: envasesRecibidosHoy,
+    b20Vendidos: b20VendidosHoy,
+    b10Vendidos: b10VendidosHoy,
+    dispVendidos: dispVendidosHoy,
+    visitas: visitasHoy.size,
+    hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})
+  };
+  guardarEstado();
+
+  // Baja automáticamente un archivo de respaldo con todo lo del día (clientes, historial, etc.)
+  exportarRespaldo();
+
+  // Limpiamos el resumen para dejar la app lista para el próximo día
+  ventaHoy = 0; cobradoHoy = 0; efectivoHoy = 0; transferenciaHoy = 0;
+  entregadoHoy = 0; deudaGeneradaHoy = 0; envasesEntregadosHoy = 0; envasesRecibidosHoy = 0;
+  b20VendidosHoy = 0; b10VendidosHoy = 0; dispVendidosHoy = 0;
+  visitasHoy = new Set();
+  clientesFueraRutaHoy = new Set();
+
+  guardarEstado();
+  renderEstadisticas();
+  renderTodo();
+  alert('Reparto del día cerrado ✅\n\nSe guardó en el reporte semanal y se descargó un respaldo del día.\nEl resumen ya quedó en cero, listo para el próximo reparto.');
+}
+
+// ---------- REPORTE SEMANAL ----------
+function mostrarReporteSemanal(){
+  cerrarMenus();
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-reporteSemanal').classList.add('active');
+  renderReporteSemanal();
+}
+
+function renderReporteSemanal(){
+  const dias = [];
+  for(let i=6; i>=0; i--){
+    const d = new Date();
+    d.setDate(d.getDate()-i);
+    const iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    dias.push(iso);
+  }
+
+  let totVenta=0, totEfectivo=0, totTransferencia=0, totDeuda=0, totEntregados=0, totRecibidos=0;
+  let totB20=0, totB10=0, totDisp=0;
+  const cont = document.getElementById('listaReporteSemanal');
+  cont.innerHTML = dias.map(iso=>{
+    const r = resumenesDiarios[iso];
+    const nombreDia = DIAS[(new Date(iso+'T00:00:00').getDay()+6)%7];
+    if(!r){
+      return `<div class="card"><h3>${nombreDia} ${isoAFechaLabel(iso)}</h3><div class="empty-msg" style="padding:10px;">Sin cerrar</div></div>`;
+    }
+    totVenta+=r.venta; totEfectivo+=r.efectivo; totTransferencia+=r.transferencia;
+    totDeuda+=r.deuda; totEntregados+=r.envasesEntregados; totRecibidos+=r.envasesRecibidos;
+    totB20+=(r.b20Vendidos||0); totB10+=(r.b10Vendidos||0); totDisp+=(r.dispVendidos||0);
+    return `<div class="card">
+      <h3>${nombreDia} ${isoAFechaLabel(iso)}</h3>
+      <div class="row"><span>Venta:</span><strong>$${r.venta.toFixed(0)}</strong></div>
+      <div class="row"><span>Efectivo:</span><span>$${r.efectivo.toFixed(0)}</span></div>
+      <div class="row"><span>Transferencia:</span><span>$${r.transferencia.toFixed(0)}</span></div>
+      <div class="row"><span>Fiado:</span><span class="deuda">$${r.deuda.toFixed(0)}</span></div>
+      <div class="row"><span>Vendidos 20L / 10-12L / Disp:</span><span>${r.b20Vendidos||0} / ${r.b10Vendidos||0} / ${r.dispVendidos||0}</span></div>
+      <div class="row"><span>Visitas:</span><span>${r.visitas}</span></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('semVenta').textContent = '$' + totVenta.toFixed(0);
+  document.getElementById('semEfectivo').textContent = '$' + totEfectivo.toFixed(0);
+  document.getElementById('semTransferencia').textContent = '$' + totTransferencia.toFixed(0);
+  document.getElementById('semDeuda').textContent = '$' + totDeuda.toFixed(0);
+  document.getElementById('semEntregados').textContent = totEntregados;
+  document.getElementById('semRecibidos').textContent = totRecibidos;
+  document.getElementById('semB20').textContent = totB20;
+  document.getElementById('semB10').textContent = totB10;
+  document.getElementById('semDisp').textContent = totDisp;
+}
+
+// ---------- FOOTER DE ESTADISTICAS RAPIDAS ----------
+function renderFooter(){
+  const totalDia = clientes.filter(c=>c.dias.includes(diaSeleccionado)).length;
+  document.getElementById('statVendido').textContent = '$' + ventaHoy.toFixed(0);
+  document.getElementById('statCobrado').textContent = '$' + cobradoHoy.toFixed(0);
+  document.getElementById('statVisitas').textContent = visitasHoy.size + '/' + totalDia;
+}
+
+function renderTodo(){
+  verificarResetDiario();
+  renderPorVisitar();
+  renderAtendidos();
+  renderFueraDeReparto();
+  renderFooter();
+  renderSelectDespuesDe();
+  renderSelectorDiaVista();
+  actualizarFechaHoyLabel();
+  actualizarBannerTransferencias();
+  if(document.getElementById('view-estadisticas').classList.contains('active')) renderEstadisticas();
+  if(document.getElementById('view-stockCamion').classList.contains('active')) renderStockCamion();
+  guardarEstado();
+}
+
+function actualizarBannerTransferencias(){
+  const pendientes = listaTransferenciasPendientes();
+
+  const badge = document.getElementById('badgeTransferencias');
+  if(pendientes.length > 0){
+    badge.textContent = pendientes.length;
+    badge.style.display = 'block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ---------- PWA: Service Worker + botón de instalar ----------
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(e){
+      console.log('No se pudo registrar el Service Worker:', e);
+    });
+  });
+}
+
+let eventoInstalacionDiferido = null;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  eventoInstalacionDiferido = e;
+  const boton = document.getElementById('btnInstalarApp');
+  if(boton) boton.style.display = 'block';
+});
+
+document.getElementById('btnInstalarApp').addEventListener('click', function(){
+  const boton = document.getElementById('btnInstalarApp');
+  boton.style.display = 'none';
+  if(!eventoInstalacionDiferido) return;
+  eventoInstalacionDiferido.prompt();
+  eventoInstalacionDiferido.userChoice.then(function(){
+    eventoInstalacionDiferido = null;
+  });
+});
+
+window.addEventListener('appinstalled', function(){
+  const boton = document.getElementById('btnInstalarApp');
+  if(boton) boton.style.display = 'none';
+});
+
+// ---------- INICIALIZACION ----------
+cargarEstado();
+renderFiltroTabs();
+renderTodo();
+
+// Guardado extra de seguridad: por si el celular cierra la app de golpe
+// (al mandar WhatsApp, al apretar Atrás, al minimizar, etc.)
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'hidden') guardarEstado();
+});
+window.addEventListener('pagehide', guardarEstado);
+window.addEventListener('beforeunload', guardarEstado);
+setInterval(guardarEstado, 10000); // respaldo silencioso cada 10 segundos
+</script>
+
+</body>
+</html>
