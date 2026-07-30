@@ -1850,7 +1850,11 @@ function renderPorVisitar(){
     .sort((a,b)=> (a.ordenPorDia[diaSeleccionado]||0) - (b.ordenPorDia[diaSeleccionado]||0));
 
   if(filtrados.length===0){
-    cont.innerHTML = '<div class="empty-msg">Ya atendiste a todos los clientes de este día 🎉</div>';
+    if(searchTerm){
+      cont.innerHTML = '<div class="empty-msg">🔍 No se encontraron clientes con "' + searchTerm + '"</div>';
+    } else {
+      cont.innerHTML = '<div class="empty-msg">Ya atendiste a todos los clientes de este día 🎉</div>';
+    }
     return;
   }
   cont.innerHTML = filtrados.map((c,i)=>tarjetaCliente(c,i,true)).join('');
@@ -1864,7 +1868,11 @@ function renderAtendidos(){
     .sort((a,b)=> (a.ordenPorDia[diaSeleccionado]||0) - (b.ordenPorDia[diaSeleccionado]||0));
 
   if(filtrados.length===0){
-    cont.innerHTML = '<div class="empty-msg">Todavía no atendiste a nadie hoy</div>';
+    if(searchTerm){
+      cont.innerHTML = '<div class="empty-msg">🔍 No se encontraron clientes con "' + searchTerm + '"</div>';
+    } else {
+      cont.innerHTML = '<div class="empty-msg">Todavía no atendiste a nadie hoy</div>';
+    }
     return;
   }
   cont.innerHTML = filtrados.map((c,i)=>tarjetaCliente(c,i,true)).join('');
