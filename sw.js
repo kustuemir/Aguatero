@@ -1,11 +1,12 @@
-// Service Worker básico para LA NORIA
-// Solo hace caché de la página principal, lo mínimo que pide Chrome
-// para considerar la app "instalable".
+// Service Worker para AGUATERO
+// Cache con network-first: intenta red, si no hay internet usa caché.
 
-const CACHE_NOMBRE = 'la-noria-cache-v1';
+const CACHE_NOMBRE = 'aguatero-cache-v2';
 const ARCHIVOS_CACHE = [
   './',
   './index.html',
+  './styles.css',
+  './app.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
