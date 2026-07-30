@@ -3,6 +3,206 @@ const SUPABASE_URL = 'https://gpchmuhxqmpwjrrtbsgr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdwY2htdWh4cW1wd2pycnRic2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODcyMjQsImV4cCI6MjEwMDg2MzIyNH0.9KQksogtzzhb9uzdAAdHOmuNWnMTHa0PUMR3wDJCgG4';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ---------- SINCRONIZACIÓN CON SUPABASE (respaldo en la nube) ----------
+// Todas las funciones son silenciosas: si no hay internet, no interrumpen al usuario.
+// Los datos se guardan igual en el celular (localStorage + IndexedDB).
+
+function clienteToSupabase(c){
+  return {
+    id: c.id,
+    user_id: usuarioActual.id,
+    codigo: c.codigo,
+    nombre: c.nombre,
+    telefono: c.telefono || '',
+    direccion: c.direccion || '',
+    precio: c.precio || 0,
+    precio10: c.precio10 || 0,
+    precio_disp: c.precioDisp || 0,
+    dias: c.dias || [],
+    saldo: c.saldo || 0,
+    envases_pendientes: c.envasesPendientes || 0,
+    orden_por_dia: c.ordenPorDia || {}
+  };
+}
+
+function clienteFromSupabase(row, movimientos){
+  return {
+    id: row.id,
+    codigo: row.codigo || 0,
+    nombre: row.nombre,
+    telefono: row.telefono || '',
+    direccion: row.direccion || '',
+    precio: parseFloat(row.precio) || 0,
+    precio10: parseFloat(row.precio10) || 0,
+    precioDisp: parseFloat(row.precio_disp) || 0,
+    dias: row.dias || [],
+    saldo: parseFloat(row.saldo) || 0,
+    envasesPendientes: row.envases_pendientes || 0,
+    ordenPorDia: row.orden_por_dia || {},
+    historial: movimientos || []
+  };
+}
+
+function movimientoToSupabase(entry, clienteId){
+  return {
+    id: entry.id,
+    user_id: usuarioActual.id,
+    cliente_id: clienteId,
+    tipo: entry.tipo,
+    fecha_iso: entry.fechaISO,
+    hora: entry.hora || '',
+    b20: entry.b20 || 0,
+    b10: entry.b10 || 0,
+    disp: entry.disp || 0,
+    bidones: entry.bidones || 0,
+    envases: entry.envases || 0,
+    costo: entry.costo || 0,
+    forma_pago: entry.formaPago || '',
+    monto_pagado: entry.montoPagado || 0,
+    transferencia_confirmada: entry.transferenciaConfirmada || false
+  };
+}
+
+function movimientoFromSupabase(row){
+  return {
+    id: row.id,
+    tipo: row.tipo,
+    fechaISO: row.fecha_iso,
+    hora: row.hora || '',
+    b20: row.b20 || 0,
+    b10: row.b10 || 0,
+    disp: row.disp || 0,
+    bidones: row.bidones || 0,
+    envases: row.envases || 0,
+    costo: parseFloat(row.costo) || 0,
+    formaPago: row.forma_pago || '',
+    montoPagado: parseFloat(row.monto_pagado) || 0,
+    transferenciaConfirmada: row.transferencia_confirmada || false
+  };
+}
+
+// Subir un cliente a Supabase (crear o actualizar)
+async function syncCliente(c){
+  if(!usuarioActual) return;
+  try{
+    const { error } = await sb.from('clientes').upsert(clienteToSupabase(c));
+    if(error) console.log('Sync cliente error:', error.message);
+  }catch(e){ /* sin internet, silencioso */ }
+}
+
+// Borrar un cliente de Supabase (borra sus movimientos en cascada)
+async function syncBorrarCliente(clienteId){
+  if(!usuarioActual) return;
+  try{
+    await sb.from('movimientos').delete().eq('cliente_id', clienteId);
+    await sb.from('clientes').delete().eq('id', clienteId);
+  }catch(e){ /* silencioso */ }
+}
+
+// Subir un movimiento a Supabase
+async function syncMovimiento(entry, clienteId){
+  if(!usuarioActual) return;
+  try{
+    const { error } = await sb.from('movimientos').insert(movimientoToSupabase(entry, clienteId));
+    if(error) console.log('Sync movimiento error:', error.message);
+  }catch(e){ /* silencioso */ }
+}
+
+// Borrar un movimiento de Supabase (cuando se elimina o deshace)
+async function syncBorrarMovimiento(entryId){
+  if(!usuarioActual) return;
+  try{
+    await sb.from('movimientos').delete().eq('id', entryId);
+  }catch(e){ /* silencioso */ }
+}
+
+// Actualizar un movimiento en Supabase (ej: confirmar transferencia)
+async function syncActualizarMovimiento(entry, clienteId){
+  if(!usuarioActual) return;
+  try{
+    await sb.from('movimientos').update(movimientoToSupabase(entry, clienteId)).eq('id', entry.id);
+  }catch(e){ /* silencioso */ }
+}
+
+// Subir el stock del camión
+async function syncStock(){
+  if(!usuarioActual) return;
+  try{
+    const { error } = await sb.from('stock_camion').upsert({
+      user_id: usuarioActual.id,
+      b20: stockCamion.b20,
+      b10: stockCamion.b10,
+      disp: stockCamion.disp
+    });
+    if(error) console.log('Sync stock error:', error.message);
+  }catch(e){ /* silencioso */ }
+}
+
+// Subir resumen diario
+async function syncResumenDiario(){
+  if(!usuarioActual) return;
+  const hoy = todayISO();
+  try{
+    const { error } = await sb.from('resumenes_diarios').upsert({
+      user_id: usuarioActual.id,
+      fecha: hoy,
+      venta: ventaHoy,
+      efectivo: efectivoHoy,
+      transferencia: transferenciaHoy,
+      deuda: deudaGeneradaHoy,
+      envases_entregados: envasesEntregadosHoy,
+      envases_recibidos: envasesRecibidosHoy,
+      b20_vendidos: b20VendidosHoy,
+      b10_vendidos: b10VendidosHoy,
+      disp_vendidos: dispVendidosHoy,
+      visitas: visitasHoy.size,
+      hora: new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})
+    }, { onConflict: 'user_id,fecha' });
+    if(error) console.log('Sync resumen error:', error.message);
+  }catch(e){ /* silencioso */ }
+}
+
+// BAJAR TODOS LOS DATOS DE SUPABASE (al iniciar sesión en un celular nuevo)
+async function descargarDatosSupabase(){
+  if(!usuarioActual) return;
+  try{
+    // Traer clientes
+    const { data: clientesData, error: errC } = await sb.from('clientes').select('*').eq('user_id', usuarioActual.id);
+    if(errC || !clientesData || clientesData.length === 0) return; // no hay datos en la nube todavía
+
+    // Traer movimientos
+    const { data: movsData, error: errM } = await sb.from('movimientos').select('*').eq('user_id', usuarioActual.id);
+
+    // Traer stock
+    const { data: stockData } = await sb.from('stock_camion').select('*').eq('user_id', usuarioActual.id).maybeSingle();
+
+    // Agrupar movimientos por cliente
+    const movsPorCliente = {};
+    if(movsData){
+      movsData.forEach(m => {
+        if(!movsPorCliente[m.cliente_id]) movsPorCliente[m.cliente_id] = [];
+        movsPorCliente[m.cliente_id].push(movimientoFromSupabase(m));
+      });
+    }
+
+    // Reconstruir estado
+    clientes = clientesData.map(row => clienteFromSupabase(row, movsPorCliente[row.id] || []));
+    contadorClientes = clientes.reduce((max, c) => Math.max(max, c.codigo), 0);
+
+    if(stockData){
+      stockCamion = { b20: stockData.b20 || 0, b10: stockData.b10 || 0, disp: stockData.disp || 0 };
+    }
+
+    guardarEstado();
+    renderTodo();
+    console.log('Datos descargados de Supabase:', clientes.length, 'clientes');
+  }catch(e){
+    console.log('No se pudo descargar de Supabase:', e);
+  }
+}
+
+
+
 let usuarioActual = null; // { id, email } una vez logueado
 
 function ocultarMensajesLogin(){
@@ -90,6 +290,7 @@ function onLoginExitoso(session){
   document.getElementById('appContainer').style.display = 'block';
   inicializarAppLuegoDeLogin();
   verificarSuscripcion();
+  descargarDatosSupabase();
 
   if(!nombreMarca){
     setTimeout(()=>{ abrirModal('modalNombreMarca'); }, 300);
@@ -325,6 +526,11 @@ function guardarEstado(){
     console.log('No se pudo guardar en localStorage:', e);
   }
   guardarEnBaseRespaldo(estado);
+  // Sincronizar con Supabase (silencioso, solo si hay internet)
+  if(usuarioActual){
+    syncStock();
+    syncResumenDiario();
+  }
 }
 
 function cargarEstado(){
@@ -761,6 +967,8 @@ function guardarCliente(){
     }
   });
 
+  guardarEstado();
+  syncCliente(cliente);
   cerrarModal('modalCliente');
   renderTodo();
 }
@@ -825,6 +1033,7 @@ function borrarCliente(){
 function confirmarBorrado(){
   const c = clientes.find(x=>x.id===clienteSeleccionado);
   ultimoClienteEliminado = c ? JSON.parse(JSON.stringify(c)) : null;
+  syncBorrarCliente(clienteSeleccionado);
   clientes = clientes.filter(c=>c.id!==clienteSeleccionado);
   visitasHoy.delete(clienteSeleccionado);
   cerrarModal('modalConfirmarEliminar');
@@ -847,6 +1056,7 @@ function mostrarBannerDeshacer(nombre){
 function deshacerEliminacion(){
   if(!ultimoClienteEliminado) return;
   clientes.push(ultimoClienteEliminado);
+  syncCliente(ultimoClienteEliminado);
   ultimoClienteEliminado = null;
   document.getElementById('bannerDeshacer').classList.remove('activo');
   clearTimeout(window._deshacerTimeout);
@@ -992,10 +1202,14 @@ function confirmarStock(tipo){
   };
   c.historial.push(entry);
   aplicarEfectoMovimiento(c, entry);
+  syncMovimiento(entry, c.id);
+  syncCliente(c);
 
   stockCamion.b20 = Math.max(0, stockCamion.b20 - b20);
   stockCamion.b10 = Math.max(0, stockCamion.b10 - b10);
   stockCamion.disp = Math.max(0, stockCamion.disp - disp);
+  syncStock();
+  syncResumenDiario();
 
   visitasHoy.add(c.id);
   moverAlFinalDelDia(c.id, diaSeleccionado);
@@ -1014,6 +1228,7 @@ function marcarNoCompra(){
     hora: ahora.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})
   };
   c.historial.push(entry);
+  syncMovimiento(entry, c.id);
   visitasHoy.add(c.id);
   moverAlFinalDelDia(c.id, diaSeleccionado);
   cerrarModal('modalStock');
@@ -1036,6 +1251,9 @@ function registrarPago(){
     montoPagado: monto
   };
   c.historial.push(entry);
+  syncMovimiento(entry, c.id);
+  syncCliente(c);
+  syncResumenDiario();
 
   cobradoHoy += monto;
 
@@ -1059,6 +1277,9 @@ function marcarTransferenciaRecibida(clienteId, entryId){
   cobradoHoy += entry.costo;
   transferenciaHoy += entry.costo;
 
+  syncActualizarMovimiento(entry, c.id);
+  syncCliente(c);
+  syncResumenDiario();
   guardarEstado();
   renderTransferenciasPendientes();
   renderTodo();
@@ -1321,6 +1542,9 @@ function guardarEdicionMovimiento(){
   }
 
   aplicarEfectoMovimiento(c, entry);
+  syncActualizarMovimiento(entry, c.id);
+  syncCliente(c);
+  syncStock();
 
   movimientoEditando = null;
   cerrarModal('modalEditarMov');
@@ -1351,6 +1575,9 @@ function anularMovimiento(){
   }
 
   c.historial = c.historial.filter(h=>h.id !== entry.id);
+  syncBorrarMovimiento(entry.id);
+  syncCliente(c);
+  syncStock();
 
   movimientoEditando = null;
   cerrarModal('modalConfirmarAnular');
@@ -1451,6 +1678,7 @@ function sumarStock(tipo){
   document.getElementById(inputId).value = '';
   renderStockCamion();
   guardarEstado();
+  syncStock();
 }
 
 function cargarStockInicial(){
@@ -1465,12 +1693,14 @@ function cargarStockInicial(){
   document.getElementById('inputStockDisp').value = '';
   renderStockCamion();
   guardarEstado();
+  syncStock();
 }
 
 function ajustarStockManual(tipo, delta){
   stockCamion[tipo] = Math.max(0, (stockCamion[tipo]||0) + delta);
   renderStockCamion();
   guardarEstado();
+  syncStock();
 }
 
 // ---------- RESPALDO DE DATOS ----------
