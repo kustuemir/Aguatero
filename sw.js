@@ -1,7 +1,7 @@
 // Service Worker para AGUATERO
 // Cache con network-first: intenta red, si no hay internet usa caché.
 
-const CACHE_NOMBRE = 'aguatero-cache-v2';
+const CACHE_NOMBRE = 'aguatero-cache-v3';
 const ARCHIVOS_CACHE = [
   './',
   './index.html',
