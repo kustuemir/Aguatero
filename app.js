@@ -55,59 +55,6 @@ function traducirErrorSupabase(error){
   return 'Ocurrió un error: ' + msg;
 }
 
-// ---------- REGISTRO DE NUEVO USUARIO ----------
-let modoRegistro = false;
-
-function toggleRegistro(){
-  modoRegistro = !modoRegistro;
-  const botonLogin = document.getElementById('btnLoginAccion');
-  const botonToggle = document.getElementById('btnRegistrarToggle');
-  if(modoRegistro){
-    botonLogin.textContent = 'Crear cuenta';
-    botonLogin.onclick = registrarUsuario;
-    botonToggle.textContent = '← Ya tengo cuenta';
-  } else {
-    botonLogin.textContent = 'Ingresar';
-    botonLogin.onclick = accionLogin;
-    botonToggle.textContent = 'Crear cuenta nueva';
-  }
-  ocultarMensajesLogin();
-}
-
-async function registrarUsuario(){
-  ocultarMensajesLogin();
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
-
-  if(!email || !password){ mostrarErrorLogin('Completá el email y la contraseña.'); return; }
-  if(password.length < 6){ mostrarErrorLogin('La contraseña debe tener al menos 6 caracteres.'); return; }
-
-  const boton = document.getElementById('btnLoginAccion');
-  boton.disabled = true;
-  boton.textContent = 'Creando...';
-
-  try {
-    const { data, error } = await sb.auth.signUp({ email, password });
-    if(error){
-      mostrarErrorLogin(traducirErrorSupabase(error));
-      boton.disabled = false;
-      boton.textContent = 'Crear cuenta';
-      return;
-    }
-    if(data.session){
-      onLoginExitoso(data.session);
-    } else {
-      mostrarInfoLogin('Cuenta creada. Revisá tu email para confirmar y después entrá.');
-      boton.textContent = 'Crear cuenta';
-      boton.disabled = false;
-    }
-  } catch(e){
-    mostrarErrorLogin('No se pudo conectar. Revisá tu conexión a internet.');
-    boton.disabled = false;
-    boton.textContent = 'Crear cuenta';
-  }
-}
-
 // ---------- RECUPERAR CONTRASEÑA ----------
 async function recuperarPassword(){
   ocultarMensajesLogin();
