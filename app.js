@@ -567,6 +567,10 @@ function cargarEstado(){
 // ---------- NAVEGACION DE TABS ----------
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
+    // Al cambiar de tab, limpiar búsqueda
+    searchTerm = '';
+    document.getElementById('inputBusqueda').value = '';
+    document.getElementById('panelBusqueda').classList.remove('activo');
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     btn.classList.add('active');
@@ -1843,18 +1847,40 @@ function tarjetaCliente(c, i, mostrarBotonesStock){
 
 // ---------- RENDER POR VISITAR (los que faltan del reparto de hoy) ----------
 function renderPorVisitar(){
-  document.getElementById('tituloDiaHoy').textContent = 'Ruta · ' + diaSeleccionado + (diaSeleccionado===diaDeHoy() ? ' (hoy)' : '');
   const cont = document.getElementById('listaPorVisitar');
+
+  // Si hay búsqueda activa, mostrar TODOS los clientes que coincidan (sin filtrar por día)
+  if(searchTerm){
+    document.getElementById('tituloDiaHoy').textContent = '🔍 Resultados de búsqueda';
+    const resultados = clientes
+      .filter(c=>pasaFiltro(c))
+      .sort((a,b)=> a.nombre.localeCompare(b.nombre));
+
+    if(resultados.length===0){
+      cont.innerHTML = '<div class="empty-msg">🔍 No se encontraron clientes con "' + searchTerm + '"</div>';
+      return;
+    }
+    cont.innerHTML = resultados.map((c,i)=>{
+      const diasTxt = (c.dias||[]).length ? c.dias.join(', ') : 'Sin día asignado';
+      const visitadoHoy = visitasHoy.has(c.id);
+      const badge = visitadoHoy
+        ? '<span style="background:#2e8b57;color:white;font-size:0.7em;padding:2px 6px;border-radius:8px;margin-left:4px;">✅ Atendido hoy</span>'
+        : '<span style="background:#e08a3e;color:white;font-size:0.7em;padding:2px 6px;border-radius:8px;margin-left:4px;">Sin atender</span>';
+      return tarjetaCliente(c,i,true).replace(
+        '<div class="card-cliente"',
+        '<div class="card-cliente"'
+      ) + '<div style="font-size:0.72em;color:#888;padding:0 12px 4px;margin-top:-6px;">📅 ' + diasTxt + badge + '</div>';
+    }).join('');
+    return;
+  }
+
+  document.getElementById('tituloDiaHoy').textContent = 'Ruta · ' + diaSeleccionado + (diaSeleccionado===diaDeHoy() ? ' (hoy)' : '');
   const filtrados = clientes
     .filter(c=>c.dias.includes(diaSeleccionado) && !visitasHoy.has(c.id) && pasaFiltro(c))
     .sort((a,b)=> (a.ordenPorDia[diaSeleccionado]||0) - (b.ordenPorDia[diaSeleccionado]||0));
 
   if(filtrados.length===0){
-    if(searchTerm){
-      cont.innerHTML = '<div class="empty-msg">🔍 No se encontraron clientes con "' + searchTerm + '"</div>';
-    } else {
-      cont.innerHTML = '<div class="empty-msg">Ya atendiste a todos los clientes de este día 🎉</div>';
-    }
+    cont.innerHTML = '<div class="empty-msg">Ya atendiste a todos los clientes de este día 🎉</div>';
     return;
   }
   cont.innerHTML = filtrados.map((c,i)=>tarjetaCliente(c,i,true)).join('');
@@ -1863,16 +1889,19 @@ function renderPorVisitar(){
 // ---------- RENDER ATENDIDOS (los que ya visitaste del reparto de hoy) ----------
 function renderAtendidos(){
   const cont = document.getElementById('listaAtendidos');
+
+  // Si hay búsqueda activa, mostrar los resultados en "por visitar" (que ya muestra todos)
+  if(searchTerm){
+    cont.innerHTML = '<div class="empty-msg">Mostrando resultados en "Por visitar"</div>';
+    return;
+  }
+
   const filtrados = clientes
     .filter(c=>visitasHoy.has(c.id) && pasaFiltro(c))
     .sort((a,b)=> (a.ordenPorDia[diaSeleccionado]||0) - (b.ordenPorDia[diaSeleccionado]||0));
 
   if(filtrados.length===0){
-    if(searchTerm){
-      cont.innerHTML = '<div class="empty-msg">🔍 No se encontraron clientes con "' + searchTerm + '"</div>';
-    } else {
-      cont.innerHTML = '<div class="empty-msg">Todavía no atendiste a nadie hoy</div>';
-    }
+    cont.innerHTML = '<div class="empty-msg">Todavía no atendiste a nadie hoy</div>';
     return;
   }
   cont.innerHTML = filtrados.map((c,i)=>tarjetaCliente(c,i,true)).join('');
