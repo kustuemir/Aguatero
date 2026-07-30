@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LA NORIA">
+<meta name="theme-color" content="#0b3d5c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230b3d5c'/%3E%3Ctext x='50' y='68' font-size='55' text-anchor='middle'%3E%F0%9F%92%A7%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>LA NORIA</title>
+
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<!-- PANTALLA DE LOGIN -->
+<div id="pantallaLogin" style="min-height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:24px; box-sizing:border-box; background:linear-gradient(180deg, #0b3d5c, #14232f);">
+  <div style="text-align:center; margin-bottom:24px;">
+    <div style="font-size:2.4em;">💧</div>
+    <div style="font-size:1.6em; font-weight:bold; color:white; letter-spacing:1px;">AGUATERO</div>
+    <div style="font-size:0.85em; color:#cfe3ee;">Gestión de reparto para repartidores</div>
+  </div>
+
+  <div style="background:white; border-radius:16px; padding:20px; width:100%; max-width:360px; box-sizing:border-box;">
+    <label>Email</label>
+    <input type="email" id="loginEmail" placeholder="tu@email.com" autocomplete="username">
+    <label>Contraseña</label>
+    <input type="password" id="loginPassword" placeholder="Tu contraseña" autocomplete="current-password">
+
+    <p id="loginError" style="color:#c0392b; font-size:0.85em; display:none;"></p>
+    <p id="loginInfo" style="color:#2e8b57; font-size:0.85em; display:none;"></p>
+
+    <button class="btn naranja" id="btnLoginAccion" style="width:100%; margin-top:8px;" onclick="accionLogin()">Ingresar</button>
+    <button class="btn outline" id="btnRegistrarToggle" style="width:100%; margin-top:6px;" onclick="toggleRegistro()">Crear cuenta nueva</button>
+    <button class="btn outline" id="btnRecuperarPass" style="width:100%; margin-top:6px; font-size:0.82em;" onclick="recuperarPassword()">¿Olvidaste tu contraseña?</button>
+    <p style="font-size:0.78em; color:#666; text-align:center; margin-top:10px;">¿No tenés cuenta? Podés crearla o pedírsela a quien te dio esta app.</p>
+  </div>
+
+  <p style="color:#cfe3ee; font-size:0.75em; margin-top:18px; text-align:center;">Necesitás conexión a internet solo para iniciar sesión.<br>Una vez adentro, podés trabajar sin internet.</p>
+  <p style="color:#cfe3ee; font-size:0.75em; margin-top:6px; text-align:center;">Al ingresar aceptás los <a href="#" style="color:white; text-decoration:underline;" onclick="abrirModal('modalTerminos'); return false;">Términos y la Política de Privacidad</a>.</p>
+</div>
+
+<!-- MODAL TERMINOS Y CONDICIONES (accesible con o sin sesión iniciada) -->
+<div class="modal-bg" id="modalTerminos">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalTerminos')">×</button>
+    <h2>Términos de Uso y Privacidad</h2>
+    <div style="max-height:60vh; overflow-y:auto; font-size:0.85em; text-align:left;">
+      <p><strong>1. Qué es Aguatero.</strong> Aguatero es una herramienta para que repartidores de agua gestionen sus clientes, ventas, stock e historial de reparto.</p>
+      <p><strong>2. Tus datos.</strong> Los datos que cargás (clientes, direcciones, ventas, deudas) son de tu propiedad. Se guardan en tu celular y, cuando corresponda, en una base de datos en la nube protegida, a la que solo vos tenés acceso con tu usuario y contraseña.</p>
+      <p><strong>3. Responsabilidad sobre los datos de tus clientes.</strong> Sos responsable de contar con el consentimiento necesario para guardar los datos de contacto de tus propios clientes (nombre, dirección, teléfono) para tu actividad comercial.</p>
+      <p><strong>4. Suscripción.</strong> El uso de Aguatero requiere una suscripción paga mensual. Si la suscripción no está al día, el acceso puede suspenderse hasta regularizar el pago. Tus datos no se eliminan por falta de pago, solo se restringe el acceso hasta ponerte al día.</p>
+      <p><strong>5. Disponibilidad.</strong> Hacemos lo posible para que el servicio esté disponible, pero no garantizamos un funcionamiento sin interrupciones. Recomendamos usar los respaldos que la app te permite descargar.</p>
+      <p><strong>6. Cambios.</strong> Estos términos pueden actualizarse; los cambios importantes se van a avisar dentro de la app.</p>
+      <p><strong>7. Contacto.</strong> Ante dudas o para dar de baja tu cuenta, contactanos por el mismo medio por el que adquiriste el servicio.</p>
+    </div>
+  </div>
+</div>
+
+<!-- CONTENEDOR PRINCIPAL DE LA APP (se muestra recién al iniciar sesión) -->
+<div id="appContainer" style="display:none;">
+
+<header style="position:relative;">
+  <div style="text-align:center; padding-top:8px; font-weight:bold; font-size:1.15em; letter-spacing:1px;">💧 AGUATERO</div>
+  <div style="text-align:center; font-size:0.78em; opacity:0.85;" id="fechaHoyLabel"></div>
+  <div id="indicadorSinConexion" style="display:none; text-align:center; background:#c0392b; color:white; font-size:0.75em; padding:3px;">📴 Sin conexión — trabajando offline, se guarda todo igual</div>
+  <div style="text-align:center; font-size:0.72em; opacity:0.75;" id="nombreMarcaMostrado"></div>
+  <div class="topbar">
+    <button class="icon-btn" onclick="toggleMenu()">☰</button>
+    <button class="icon-btn" id="btnAgregarTop">➕👤</button>
+    <button class="icon-btn" onclick="togglePanel('panelBusqueda')">🔍</button>
+    <button class="icon-btn" style="position:relative;" onclick="mostrarTransferenciasPendientes()">
+      🕒<span id="badgeTransferencias" style="display:none; position:absolute; top:-2px; right:-2px; background:#e74c3c; color:white; font-size:0.6em; border-radius:50%; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px;"></span>
+    </button>
+    <button class="icon-btn" onclick="togglePanel('diaDropdown')">📅</button>
+    <button class="icon-btn" onclick="renderTodo()">🔄</button>
+  </div>
+
+  <div class="menu-dropdown" id="menuDropdown">
+    <button onclick="abrirModalCargarReparto()">📥 Cargar reparto del día</button>
+    <button onclick="importarDesdeContactos()">📇 Importar clientes desde Contactos</button>
+    <button onclick="mostrarEstadisticas()">📊 Resumen del día</button>
+    <button onclick="mostrarHistorialFecha()">📜 Historial (por fecha o cliente)</button>
+    <button onclick="mostrarStockCamion()">🚚 Stock del camión</button>
+    <button onclick="mostrarTransferenciasPendientes()">🕒 Transferencias pendientes</button>
+    <button onclick="mostrarReporteSemanal()">📈 Reporte semanal</button>
+    <button onclick="exportarRespaldo()">💾 Descargar respaldo</button>
+    <button onclick="compartirRespaldo()">📤 Enviar respaldo (Drive / Email / WhatsApp)</button>
+    <button onclick="exportarExcel()">📊 Exportar movimientos a Excel</button>
+    <button onclick="document.getElementById('inputRestaurar').click()">📂 Restaurar respaldo</button>
+    <button onclick="document.getElementById('inputNombreMarca').value = usuarioActual.nombreMarca || ''; abrirModal('modalNombreMarca'); cerrarMenus();">✏️ Cambiar nombre / marca</button>
+    <button onclick="abrirModal('modalTerminos'); cerrarMenus();">📄 Términos y Privacidad</button>
+    <button onclick="alternarModoOscuro()" id="btnModoOscuro">🌙 Modo oscuro</button>
+    <button onclick="cerrarSesion()">🚪 Cerrar sesión</button>
+    <button onclick="cerrarMenus()">✕ Cerrar</button>
+  </div>
+  <input type="file" id="inputRestaurar" accept="application/json" style="display:none;" onchange="restaurarRespaldo(event)">
+
+  <div class="dia-dropdown" id="diaDropdown">
+    <label style="color:var(--texto);">Consultar clientes de otro día:</label>
+    <div class="dia-selector" id="selectorDiaVista"></div>
+  </div>
+
+  <div class="panel-desplegable" id="panelBusqueda">
+    <div class="filtro-tabs" id="filtroTabs"></div>
+    <div style="display:flex; gap:6px;">
+      <input type="text" id="inputBusqueda" placeholder="Búsqueda por nombre de cliente" oninput="onBuscar()" style="flex:1;">
+      <button class="btn chico" id="btnBusquedaVoz" onclick="buscarPorVoz()" title="Buscar por voz">🎤</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="porVisitar">Por visitar</button>
+    <button class="tab-btn" data-tab="atendidos">Atendidos</button>
+    <button class="tab-btn" data-tab="fueraReparto">Fuera de reparto</button>
+  </div>
+</header>
+
+<!-- POR VISITAR: los del reparto de hoy que todavia no atendiste -->
+<div class="view active" id="view-porVisitar">
+  <div class="card" style="text-align:center;">
+    <strong id="tituloDiaHoy">Ruta de hoy</strong>
+  </div>
+  <div id="listaPorVisitar"></div>
+</div>
+
+<!-- ATENDIDOS: los del reparto de hoy que ya visitaste -->
+<div class="view" id="view-atendidos">
+  <div id="listaAtendidos"></div>
+</div>
+
+<!-- FUERA DE REPARTO: clientes que no estan programados para hoy, para venderles igual -->
+<div class="view" id="view-fueraReparto">
+  <div class="card">
+    <input type="text" id="inputBuscadorFuera" placeholder="Buscar cliente para agregar a fuera de reparto..." oninput="renderFueraDeReparto()">
+  </div>
+  <div id="listaFueraReparto"></div>
+</div>
+
+<!-- ESTADISTICAS -->
+<div class="view" id="view-estadisticas">
+  <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
+  <h2 style="text-align:center;">Resumen del día</h2>
+  <div class="stat-grid">
+    <div class="stat-box" style="background:#29b6d8;"><span class="num" id="estVenta">$0</span>Venta total</div>
+    <div class="stat-box" style="background:#2e8b57;"><span class="num" id="estEfectivo">$0</span>Efectivo</div>
+    <div class="stat-box" style="background:#7c8ff0;"><span class="num" id="estTransferencia">$0</span>Transferencia</div>
+    <div class="stat-box" style="background:#c0392b;"><span class="num" id="estDeuda">$0</span>Deuda</div>
+    <div class="stat-box" style="background:#2e8b57;"><span class="num" id="estVisitados">0/0</span>Clientes visitados</div>
+    <div class="stat-box" style="background:#e08a3e;"><span class="num" id="estEntregados">0</span>Envases entregados</div>
+    <div class="stat-box" style="background:#1a6fa8;"><span class="num" id="estRecibidos">0</span>Envases recibidos</div>
+    <div class="stat-box" style="background:#5c5c5c;"><span class="num" id="estClientesTotal">0</span>Clientes totales</div>
+    <div class="stat-box" style="background:#0b6e8f;"><span class="num" id="estB20">0</span>Vendidos 20L</div>
+    <div class="stat-box" style="background:#0b8f7a;"><span class="num" id="estB10">0</span>Vendidos 10-12L</div>
+    <div class="stat-box" style="background:#8f6b0b;"><span class="num" id="estDisp">0</span>Vendidos Dispenser</div>
+  </div>
+  <button class="btn naranja" onclick="cerrarRepartoDelDia()">🔒 Cerrar reparto del día</button>
+  <p style="font-size:0.78em; color:#666;" id="estadoCierreHoy"></p>
+  <button class="btn outline" onclick="mostrarReporteSemanal()">📈 Ver reporte semanal</button>
+</div>
+
+<!-- HISTORIAL (por fecha o por cliente) -->
+<div class="view" id="view-historialFecha">
+  <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
+  <h2 style="text-align:center;">Historial</h2>
+  <div class="btn-row">
+    <button class="btn" id="btnHistPorFecha" onclick="cambiarSubtabHistorial('fecha')">Por fecha</button>
+    <button class="btn outline" id="btnHistPorCliente" onclick="cambiarSubtabHistorial('cliente')">Por cliente</button>
+  </div>
+
+  <div id="histPorFecha">
+    <input type="date" id="inputFechaHistorial" onchange="renderHistorialFecha()">
+    <div id="listaHistorialFecha"></div>
+  </div>
+
+  <div id="histPorCliente" style="display:none;">
+    <input type="text" id="inputBuscarClienteHist" placeholder="Buscar cliente por nombre" oninput="renderHistorialPorCliente()">
+    <div id="listaHistorialPorCliente"></div>
+  </div>
+</div>
+
+<!-- CONSULTAR OTRO DIA -->
+<div class="view" id="view-consultaDia">
+  <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
+  <h2 style="text-align:center;" id="tituloConsultaDia">Clientes de...</h2>
+  <p style="font-size:0.78em; color:#666; text-align:center;">Esto es solo para consultar o venderle a alguien fuera del reparto de hoy. No cambia tu reparto activo.</p>
+  <div id="listaConsultaDia"></div>
+</div>
+
+<!-- REPORTE SEMANAL -->
+<div class="view" id="view-reporteSemanal">
+  <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
+  <h2 style="text-align:center;">Reporte semanal</h2>
+  <p style="font-size:0.8em; color:#666; text-align:center;">Últimos 7 días (con el reparto cerrado)</p>
+  <div id="listaReporteSemanal"></div>
+  <div class="card" style="background:var(--azul-hondo); color:white;">
+    <h3>Total de la semana</h3>
+    <div class="row"><span>Venta total:</span><strong id="semVenta">$0</strong></div>
+    <div class="row"><span>Efectivo:</span><strong id="semEfectivo">$0</strong></div>
+    <div class="row"><span>Transferencia:</span><strong id="semTransferencia">$0</strong></div>
+    <div class="row"><span>Fiado:</span><strong id="semDeuda">$0</strong></div>
+    <div class="row"><span>Envases entregados:</span><strong id="semEntregados">0</strong></div>
+    <div class="row"><span>Envases recibidos:</span><strong id="semRecibidos">0</strong></div>
+    <div class="row"><span>Vendidos 20L:</span><strong id="semB20">0</strong></div>
+    <div class="row"><span>Vendidos 10-12L:</span><strong id="semB10">0</strong></div>
+    <div class="row"><span>Vendidos Dispenser:</span><strong id="semDisp">0</strong></div>
+  </div>
+</div>
+
+<!-- TRANSFERENCIAS PENDIENTES -->
+<div class="view" id="view-transferenciasPendientes">
+  <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
+  <h2 style="text-align:center;">🕒 Transferencias pendientes</h2>
+  <p style="font-size:0.8em; color:#666; text-align:center;">Las marcadas con ⚠️ son de días anteriores — mandales el recordatorio.</p>
+  <div id="listaTransferenciasPendientes"></div>
+</div>
+
+<!-- STOCK DEL CAMION -->
+<div class="view" id="view-stockCamion">
+  <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
+  <h2 style="text-align:center;">Stock del camión</h2>
+
+  <div class="card" style="text-align:center; background:var(--celeste); color:white;">
+    <span style="font-size:0.85em;">Envases vacíos que te dieron hoy</span>
+    <div style="font-size:1.6em; font-weight:bold;" id="stockEnvasesVaciosHoy">0</div>
+  </div>
+
+  <div class="card">
+    <h3>💧 Bidones 20 Lts</h3>
+    <div class="row"><span>Te quedan llenos:</span><strong id="stockB20">0</strong></div>
+    <label>Cargar stock al arrancar el día (reemplaza lo que había)</label>
+    <input type="number" inputmode="numeric" id="inputStockB20" placeholder="Ej: 50">
+    <label>Sumar más (volviste a cargar sin perder lo que quedaba)</label>
+    <div class="btn-row">
+      <input type="number" inputmode="numeric" id="inputSumarB20" placeholder="Ej: 20" style="margin:0;">
+      <button class="btn chico" onclick="sumarStock('b20')">＋ Sumar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>💧 Bidones 10/12 Lts</h3>
+    <div class="row"><span>Te quedan llenos:</span><strong id="stockB10">0</strong></div>
+    <label>Cargar stock al arrancar el día (reemplaza lo que había)</label>
+    <input type="number" inputmode="numeric" id="inputStockB10" placeholder="Ej: 3">
+    <label>Sumar más</label>
+    <div class="btn-row">
+      <input type="number" inputmode="numeric" id="inputSumarB10" placeholder="Ej: 2" style="margin:0;">
+      <button class="btn chico" onclick="sumarStock('b10')">＋ Sumar</button>
+    </div>
+    <label>Corrección manual (se rompió, se perdió, etc.)</label>
+    <div class="btn-row">
+      <button class="btn chico outline" onclick="ajustarStockManual('b10',-1)">－ 1</button>
+      <button class="btn chico outline" onclick="ajustarStockManual('b10',1)">＋ 1</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🧊 Dispensers</h3>
+    <div class="row"><span>Te quedan:</span><strong id="stockDisp">0</strong></div>
+    <label>Cargar stock al arrancar el día (reemplaza lo que había)</label>
+    <input type="number" inputmode="numeric" id="inputStockDisp" placeholder="Ej: 2">
+    <label>Sumar más</label>
+    <div class="btn-row">
+      <input type="number" inputmode="numeric" id="inputSumarDisp" placeholder="Ej: 1" style="margin:0;">
+      <button class="btn chico" onclick="sumarStock('disp')">＋ Sumar</button>
+    </div>
+    <label>Corrección manual (se rompió, se perdió, etc.)</label>
+    <div class="btn-row">
+      <button class="btn chico outline" onclick="ajustarStockManual('disp',-1)">－ 1</button>
+      <button class="btn chico outline" onclick="ajustarStockManual('disp',1)">＋ 1</button>
+    </div>
+  </div>
+
+  <button class="btn naranja" onclick="cargarStockInicial()">Guardar stock inicial (reemplaza)</button>
+  <p style="font-size:0.78em; color:#666; margin-top:10px;">
+    Los tres tipos (20L, 10/12L y Dispenser) se descuentan solos con cada venta, y los envases vacíos se suman solos cuando te los entregan.
+    Los botones de "Corrección manual" son solo para ajustar si se te rompió, perdió, o algo no cuadra.
+  </p>
+</div>
+
+
+<button class="fab" id="btnAgregar">+</button>
+
+<button id="btnInstalarApp" style="display:none; position:fixed; bottom:80px; left:12px; right:12px; z-index:70; background:var(--naranja); color:white; border:none; padding:14px; border-radius:10px; font-size:1em; font-weight:bold;">
+  📲 Instalar LA NORIA en la pantalla de inicio
+</button>
+
+<div class="banner-deshacer" id="bannerDeshacer">
+  <span id="bannerDeshacerTexto">Cliente eliminado</span>
+  <button onclick="deshacerEliminacion()">Deshacer</button>
+</div>
+
+<div class="footer-stats">
+  <div><strong id="statVendido">$0</strong>Vendido</div>
+  <div><strong id="statCobrado">$0</strong>Cobrado</div>
+  <div><strong id="statVisitas">0/0</strong>Visitas</div>
+</div>
+
+<!-- MODAL NUEVO CLIENTE -->
+<div class="modal-bg" id="modalCliente">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalCliente')">×</button>
+    <h2 id="tituloModalCliente">Nuevo cliente</h2>
+
+    <div class="section-title">Datos del cliente</div>
+    <label>Nombre</label>
+    <input type="text" id="inputNombre" placeholder="Ej: Doña Rosa">
+    <label>Teléfono</label>
+    <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputTelefono" placeholder="Solo números">
+
+    <div class="section-title">Dirección</div>
+    <label>Calle y altura</label>
+    <input type="text" id="inputDireccion" placeholder="Ej: Calle 5, 823">
+
+    <div class="section-title">Configuración</div>
+    <label>Precio bidón 20 Lts ($)</label>
+    <input type="number" inputmode="numeric" id="inputPrecio" placeholder="Ej: 5000">
+    <label>Precio bidón 10-12 Lts ($)</label>
+    <input type="number" inputmode="numeric" id="inputPrecio10" placeholder="Ej: 3000">
+    <label>Precio Dispenser ($)</label>
+    <input type="number" inputmode="numeric" id="inputPrecioDisp" placeholder="Ej: 8000">
+    <label>Frecuencia de visita (días)</label>
+    <div class="dia-selector" id="diasClienteSelector"></div>
+
+    <div class="section-title">Orden en el recorrido</div>
+    <label>Va después de qué cliente (en su día de reparto)</label>
+    <select id="inputDespuesDe">
+      <option value="">Al final del recorrido</option>
+    </select>
+
+    <button class="btn naranja" onclick="guardarCliente()">Guardar cliente</button>
+  </div>
+</div>
+
+<!-- MODAL STOCK / REGISTRAR COMPRA -->
+<div class="modal-bg" id="modalStock">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalStock')">×</button>
+    <h2 id="nombreStock">Cliente</h2>
+    <div class="row"><span>Saldo actual:</span><strong id="saldoActualStock">$0</strong></div>
+    <div class="row"><span>Envases que debe:</span><strong id="bidonesPoderStock">0</strong></div>
+    <hr>
+    <label>¿Qué le vendés?</label>
+    <div class="tipos-bidon">
+      <div class="tipo-bidon-box">
+        <span class="tipo-bidon-label">💧 20 Lts</span>
+        <div class="stepper">
+          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkB20',-1)">－</button>
+          <input type="number" inputmode="numeric" id="stkB20" value="" min="0" placeholder="0" oninput="actualizarPreviewStock()">
+          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkB20',1)">＋</button>
+        </div>
+      </div>
+      <div class="tipo-bidon-box">
+        <span class="tipo-bidon-label">💧 10-12 Lts</span>
+        <div class="stepper">
+          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkB10',-1)">－</button>
+          <input type="number" inputmode="numeric" id="stkB10" value="" min="0" placeholder="0" oninput="actualizarPreviewStock()">
+          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkB10',1)">＋</button>
+        </div>
+      </div>
+      <div class="tipo-bidon-box">
+        <span class="tipo-bidon-label">🧊 Dispenser</span>
+        <div class="stepper">
+          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkDisp',-1)">－</button>
+          <input type="number" inputmode="numeric" id="stkDisp" value="" min="0" placeholder="0" oninput="actualizarPreviewStock()">
+          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkDisp',1)">＋</button>
+        </div>
+      </div>
+    </div>
+    <label>Envases vacíos que devuelve</label>
+    <input type="number" inputmode="numeric" id="stkEnvases" value="" min="0" placeholder="0">
+    <div class="preview-box">Total de esta compra: <strong id="stkPreview">$0</strong></div>
+
+    <div class="btn-row">
+      <button class="btn verde" onclick="confirmarStock('efectivo')">Efectivo</button>
+      <button class="btn" onclick="confirmarStock('transferencia')">Transferencia ya recibida</button>
+    </div>
+    <button class="btn outline" style="margin-top:6px;" onclick="confirmarStock('transferencia_pendiente')">🕒 Transferencia pendiente (dijo que te manda)</button>
+
+    <label style="margin-top:10px;">¿Cuánto te entrega ahora? (parcial o fiado)</label>
+    <input type="number" inputmode="numeric" id="stkEntregado" placeholder="0">
+    <button class="btn naranja" onclick="confirmarStock('entregado')">Registrar lo entregado</button>
+
+    <button class="btn outline" onclick="marcarNoCompra()">No compra</button>
+
+    <hr>
+    <h3 style="margin-bottom:6px;">Historial de este cliente</h3>
+    <div id="historialStock" style="max-height:220px; overflow-y:auto; -webkit-overflow-scrolling:touch; border:1px solid #ddd; border-radius:8px; padding:8px; background:#fafafa;"></div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE / HISTORIAL CLIENTE -->
+<div class="modal-bg" id="modalDetalle">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalDetalle')">×</button>
+    <h2 id="nombreDetalle">Cliente</h2>
+    <div class="row"><span>Saldo actual:</span><strong id="saldoDetalle">$0</strong></div>
+    <div class="row"><span>Envases que debe:</span><strong id="envasesDetalle">0</strong></div>
+    <div class="row"><span>Días de reparto:</span><strong id="diasDetalle">-</strong></div>
+    <div class="btn-row" id="botonesContacto"></div>
+    <button class="btn outline" onclick="abrirEditarCliente()">✏️ Editar datos del cliente</button>
+    <hr>
+    <label>Registrar pago (salda deuda vieja)</label>
+    <input type="number" inputmode="numeric" id="inputPago" placeholder="Monto $">
+    <button class="btn naranja" onclick="registrarPago()">Registrar pago</button>
+    <hr>
+    <button class="btn rojo" onclick="borrarCliente()">Eliminar cliente</button>
+    <h3>Historial</h3>
+    <div class="movimientos" id="historialCliente"></div>
+  </div>
+</div>
+
+<!-- MODAL CARGAR REPARTO (elegir dia activo) -->
+<div class="modal-bg" id="modalCargarReparto">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalCargarReparto')">×</button>
+    <h2>Cargar reparto del día</h2>
+    <p style="font-size:0.85em; color:#666;">Elegí el día de reparto que vas a hacer. "Por visitar", "Atendidos" y "Fuera de reparto" van a mostrar los clientes de ese día.</p>
+    <div class="dia-selector" id="selectorDiaActivo"></div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR ELIMINAR -->
+<div class="modal-bg" id="modalConfirmarEliminar">
+  <div class="modal">
+    <h2>Eliminar cliente</h2>
+    <p>¿Seguro que querés eliminar a <strong id="nombreAEliminar"></strong>? Esta acción no se puede deshacer.</p>
+    <button class="btn rojo" onclick="confirmarBorrado()">Sí, eliminar</button>
+    <button class="btn outline" onclick="cerrarModal('modalConfirmarEliminar')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL BOLETA -->
+<div class="modal-bg" id="modalBoleta">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalBoleta')">×</button>
+    <h2>🧾 Boleta</h2>
+    <textarea id="boletaTexto" readonly style="width:100%; min-height:220px; font-family:monospace; font-size:0.85em; padding:10px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box;"></textarea>
+    <div class="btn-row" style="margin-top:10px;">
+      <a class="btn verde" id="btnBoletaWhatsApp" style="text-decoration:none; text-align:center;" href="#">📲 Enviar por WhatsApp</a>
+      <button class="btn outline" onclick="copiarBoleta()">📋 Copiar texto</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR ANULAR VENTA -->
+<div class="modal-bg" id="modalConfirmarAnular">
+  <div class="modal">
+    <h2>Anular venta</h2>
+    <p>¿Seguro que querés anular este movimiento? Se va a borrar del todo, se descuenta del resumen del día y del stock del camión (si correspondía). No se puede deshacer.</p>
+    <button class="btn rojo" onclick="anularMovimiento()">Sí, anular</button>
+    <button class="btn outline" onclick="cerrarModal('modalConfirmarAnular')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL EDITAR MOVIMIENTO -->
+<div class="modal-bg" id="modalEditarMov">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalEditarMov')">×</button>
+    <h2>Corregir movimiento</h2>
+    <p style="font-size:0.8em; color:#666;" id="fechaEditMov"></p>
+
+    <div class="btn-row">
+      <button class="btn" id="btnEditCompro" onclick="setTipoEdicion('compra')">Compró</button>
+      <button class="btn outline" id="btnEditNoCompro" onclick="setTipoEdicion('no_compra')">No compró</button>
+    </div>
+
+    <div id="camposEditCompra">
+      <label>Bidones 20L</label>
+      <input type="number" inputmode="numeric" id="editB20" min="0">
+      <label>Bidones 10-12L</label>
+      <input type="number" inputmode="numeric" id="editB10" min="0">
+      <label>Dispenser</label>
+      <input type="number" inputmode="numeric" id="editDisp" min="0">
+      <label>Envases que devolvió</label>
+      <input type="number" inputmode="numeric" id="editEnvases" min="0">
+      <label>Forma de pago</label>
+      <select id="editFormaPago" onchange="toggleEditMontoEntregado()">
+        <option value="efectivo">Efectivo (pagó todo)</option>
+        <option value="transferencia">Transferencia (pagó todo)</option>
+        <option value="transferencia_pendiente">Transferencia pendiente (todavía no llegó)</option>
+        <option value="entregado">Entregado (parcial / fiado)</option>
+      </select>
+      <div id="editMontoEntregadoWrap" style="display:none;">
+        <label>Monto entregado ($)</label>
+        <input type="number" inputmode="numeric" id="editMontoEntregado">
+      </div>
+    </div>
+
+    <button class="btn naranja" onclick="guardarEdicionMovimiento()">Guardar corrección</button>
+    <button class="btn outline" style="border-color:#c0392b; color:#c0392b; margin-top:10px;" onclick="confirmarAnularMovimiento()">🗑️ Anular esta venta (no vale, deshacer del todo)</button>
+  </div>
+</div>
+
+<!-- MODAL ONBOARDING (primera vez) -->
+<div class="modal-bg" id="modalOnboarding">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarOnboarding()">×</button>
+    <div id="onboardingContenido"></div>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn outline" onclick="cerrarOnboarding()">Saltar</button>
+      <button class="btn naranja" id="btnOnboardingSiguiente" onclick="siguienteOnboarding()">Siguiente</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOMBRE / MARCA -->
+<div class="modal-bg" id="modalNombreMarca">
+  <div class="modal">
+    <h2>👋 ¡Bienvenido a Aguatero!</h2>
+    <p style="font-size:0.9em; color:#666;">¿Cómo querés que te mostremos en la app? Puede ser tu nombre o el nombre de tu marca de agua.</p>
+    <label>Nombre / Marca</label>
+    <input type="text" id="inputNombreMarca" placeholder="Ej: Juan Pérez, o Aguas del Sur">
+    <button class="btn naranja" onclick="guardarNombreMarca()">Guardar</button>
+  </div>
+</div>
+
+</div><!-- fin de appContainer -->
+
+<!-- PANTALLA DE SUSCRIPCION BLOQUEADA -->
+<div id="pantallaSuscripcionBloqueada" style="display:none; position:fixed; inset:0; z-index:200; background:linear-gradient(180deg, #0b3d5c, #14232f); flex-direction:column; justify-content:center; align-items:center; padding:24px; box-sizing:border-box;">
+  <div style="font-size:2.4em;">🔒</div>
+  <div style="font-size:1.3em; font-weight:bold; color:white; text-align:center; margin:10px 0;">Tu suscripción no está activa</div>
+  <p style="color:#cfe3ee; font-size:0.9em; text-align:center; max-width:340px;" id="textoSuscripcionBloqueada">
+    Para seguir usando Aguatero, poné la suscripción al día.
+  </p>
+  <a class="btn naranja" id="linkPagoSuscripcion" href="#" style="text-decoration:none; text-align:center; margin-top:10px; max-width:300px; width:100%;">💳 Pagar suscripción</a>
+  <button class="btn outline" style="margin-top:10px; max-width:300px; width:100%; background:transparent; color:white; border-color:white;" onclick="cerrarSesion(); document.getElementById('pantallaSuscripcionBloqueada').style.display='none';">🚪 Cerrar sesión</button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
