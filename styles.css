@@ -186,9 +186,10 @@
   .dia-chip {
     padding: 6px 10px;
     border-radius: 8px;
-    background: #eee;
+    background: var(--arena);
+    color: var(--texto);
     font-size: 0.75em;
-    border: none;
+    border: 1px solid var(--celeste);
   }
   .dia-chip.activo { background: var(--celeste); color: white; }
   .preview-box {
@@ -311,7 +312,8 @@
     border: 1px solid rgba(255,255,255,0.1);
   }
   .dia-dropdown.activo { display: block; }
-  .dia-dropdown .dia-chip { color: var(--texto); }
+  .dia-dropdown .dia-chip { color: var(--texto); background: var(--arena); }
+  .dia-dropdown label { color: var(--texto); }
   /* Estadisticas */
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
   .stat-box {
