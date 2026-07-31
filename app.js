@@ -376,6 +376,7 @@ let clienteStockId = null;
 let diaSeleccionado = diaDeHoy();
 let searchTerm = '';
 let searchType = 'nombre';
+let modoTodosClientes = true; // Al abrir la app, mostrar todos los clientes
 
 let ventaHoy = 0;
 let cobradoHoy = 0;
@@ -485,7 +486,7 @@ function cargarDeBaseRespaldo(){
 
 function construirEstadoActual(){
   return {
-    clientes, contadorClientes, diaSeleccionado,
+    clientes, contadorClientes, diaSeleccionado, modoTodosClientes,
     ventaHoy, cobradoHoy, efectivoHoy, transferenciaHoy, entregadoHoy,
     deudaGeneradaHoy, envasesEntregadosHoy, envasesRecibidosHoy,
     b20VendidosHoy, b10VendidosHoy, dispVendidosHoy,
@@ -500,6 +501,7 @@ function aplicarEstadoDesdeObjeto(estado){
   clientes = estado.clientes || [];
   contadorClientes = estado.contadorClientes || 0;
   diaSeleccionado = estado.diaSeleccionado || diaDeHoy();
+  modoTodosClientes = estado.modoTodosClientes !== undefined ? estado.modoTodosClientes : true;
   ventaHoy = estado.ventaHoy || 0;
   cobradoHoy = estado.cobradoHoy || 0;
   efectivoHoy = estado.efectivoHoy || 0;
@@ -585,6 +587,32 @@ function cerrarMenus(){
   document.getElementById('menuDropdown').classList.remove('activo');
   document.getElementById('diaDropdown').classList.remove('activo');
 }
+
+// Cerrar dropdowns al tocar fuera de ellos
+document.addEventListener('click', function(e){
+  const diaDropdown = document.getElementById('diaDropdown');
+  const menuDropdown = document.getElementById('menuDropdown');
+  const panelBusqueda = document.getElementById('panelBusqueda');
+  
+  // Si el dropdown de día está abierto y el click no fue en el dropdown ni en su botón
+  if(diaDropdown.classList.contains('activo')){
+    if(!diaDropdown.contains(e.target) && !e.target.closest("[onclick*='diaDropdown']")){
+      diaDropdown.classList.remove('activo');
+    }
+  }
+  // Lo mismo para el menú principal
+  if(menuDropdown.classList.contains('activo')){
+    if(!menuDropdown.contains(e.target) && !e.target.closest("[onclick*='menuDropdown']") && !e.target.closest("[onclick*='toggleMenu']")){
+      menuDropdown.classList.remove('activo');
+    }
+  }
+  // Y para el panel de búsqueda
+  if(panelBusqueda && panelBusqueda.classList.contains('activo')){
+    if(!panelBusqueda.contains(e.target) && !e.target.closest("[onclick*='panelBusqueda']")){
+      panelBusqueda.classList.remove('activo');
+    }
+  }
+});
 function toggleMenu(){
   document.getElementById('diaDropdown').classList.remove('activo');
   document.getElementById('menuDropdown').classList.toggle('activo');
@@ -833,6 +861,7 @@ function abrirModalCargarReparto(){
     chip.textContent = dia;
     chip.onclick = ()=>{
       diaSeleccionado = dia;
+      modoTodosClientes = false;
       verificarResetDiario();
       cerrarModal('modalCargarReparto');
       renderTodo();
@@ -840,6 +869,13 @@ function abrirModalCargarReparto(){
     cont.appendChild(chip);
   });
   abrirModal('modalCargarReparto');
+}
+
+function volverATodosLosClientes(){
+  modoTodosClientes = true;
+  searchTerm = '';
+  if(document.getElementById('inputBusqueda')) document.getElementById('inputBusqueda').value = '';
+  renderTodo();
 }
 
 // ---------- CONSULTAR CLIENTES DE OTRO DIA ----------
@@ -1892,24 +1928,52 @@ function renderPorVisitar(){
       } else {
         badge = '<span style="background:#e08a3e;color:white;font-size:0.7em;padding:2px 6px;border-radius:8px;margin-left:4px;">Sin atender</span>';
       }
-      // Botón: si ya está en ruta de hoy, no mostrar. Si no, mostrar "Agregar para visitar"
       const botonAgregar = (!enRutaHoy && !visitadoHoy)
-        ? '<button class="btn chico naranja" style="margin-top:6px;width:100%;" onclick="agregarParaVisitar(\''+c.id+'\')">➕ Agregar para visitar hoy</button>'
+        ? `<button class="btn chico naranja" style="margin-top:6px;width:100%;" onclick="agregarParaVisitar('${c.id}')">➕ Agregar para visitar hoy</button>`
         : '';
-      // Usar tarjetaCliente pero sin el botón de fuera de reparto (pasamos false para que no lo muestre)
       const card = tarjetaClienteBusqueda(c, i);
       return card + '<div style="font-size:0.72em;color:#888;padding:0 12px 4px;margin-top:-6px;">📅 ' + diasTxt + badge + '</div>' + botonAgregar;
     }).join('');
     return;
   }
 
+  // --- MODO TODOS LOS CLIENTES (al abrir la app, antes de cargar reparto) ---
+  if(modoTodosClientes){
+    document.getElementById('tituloDiaHoy').textContent = '📋 Todos los clientes (' + clientes.length + ')';
+    const filtrados = clientes
+      .filter(c=>pasaFiltro(c))
+      .sort((a,b)=> a.nombre.localeCompare(b.nombre));
+
+    if(filtrados.length===0){
+      cont.innerHTML = '<div class="empty-msg">No hay clientes cargados. Tocá ➕👤 para agregar el primero.</div>';
+      return;
+    }
+    cont.innerHTML = filtrados.map((c,i)=>{
+      const diasTxt = (c.dias||[]).length ? c.dias.join(', ') : 'Sin día';
+      const visitadoHoy = visitasHoy.has(c.id);
+      const claseDeuda = c.saldo > 0 ? 'tiene-deuda' : 'al-dia';
+      return `
+        <div class="card ${claseDeuda}">
+          <div onclick="abrirDetalle('${c.id}')">
+            <h3>${(i+1)}. ${c.codigo} - ${c.nombre} ${visitadoHoy ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
+            <div class="row"><span>${c.direccion || 'Sin dirección'}</span></div>
+            <div class="row"><span>Deuda:</span><span class="${c.saldo>0?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
+            <div class="row"><span>Envases que debe:</span><span>${c.envasesPendientes}</span></div>
+          </div>
+          <div style="font-size:0.72em;color:#888;padding:0 12px 4px;">📅 ${diasTxt}</div>
+        </div>
+      `;
+    }).join('');
+    return;
+  }
+  // --- MODO REPARTO (después de cargar reparto del día) ---
   document.getElementById('tituloDiaHoy').textContent = 'Ruta · ' + diaSeleccionado + (diaSeleccionado===diaDeHoy() ? ' (hoy)' : '');
   const filtrados = clientes
     .filter(c=> (c.dias.includes(diaSeleccionado) || clientesFueraRutaHoy.has(c.id)) && !visitasHoy.has(c.id) && pasaFiltro(c))
     .sort((a,b)=> (a.ordenPorDia[diaSeleccionado]||0) - (b.ordenPorDia[diaSeleccionado]||0));
 
   if(filtrados.length===0){
-    cont.innerHTML = '<div class="empty-msg">Ya atendiste a todos los clientes de este día 🎉</div>';
+    cont.innerHTML = '<div class="empty-msg">Ya atendiste a todos los clientes de este día 🎉<br><br><button class="btn outline" onclick="volverATodosLosClientes()">← Ver todos los clientes</button></div>';
     return;
   }
   cont.innerHTML = filtrados.map((c,i)=>tarjetaCliente(c,i,true)).join('');
@@ -1918,6 +1982,11 @@ function renderPorVisitar(){
 // ---------- RENDER ATENDIDOS (los que ya visitaste del reparto de hoy) ----------
 function renderAtendidos(){
   const cont = document.getElementById('listaAtendidos');
+
+  if(modoTodosClientes){
+    cont.innerHTML = '<div class="empty-msg">Cargá un reparto del día para ver los atendidos</div>';
+    return;
+  }
 
   // Si hay búsqueda activa, mostrar los resultados en "por visitar" (que ya muestra todos)
   if(searchTerm){
@@ -1939,6 +2008,12 @@ function renderAtendidos(){
 // ---------- RENDER FUERA DE REPARTO (clientes no programados hoy) ----------
 function renderFueraDeReparto(){
   const cont = document.getElementById('listaFueraReparto');
+
+  if(modoTodosClientes){
+    cont.innerHTML = '<div class="empty-msg">Cargá un reparto del día para ver esta sección</div>';
+    return;
+  }
+
   const termino = (document.getElementById('inputBuscadorFuera').value || '').trim().toLowerCase();
   
   // Primero, mostrar los que ya agregaste (pero todavía sin atender)
@@ -2180,6 +2255,8 @@ window.addEventListener('appinstalled', function(){
 function inicializarAppLuegoDeLogin(){
   cargarEstado();
   renderFiltroTabs();
+  // Asegurar que al abrir la app se vean todos los clientes
+  modoTodosClientes = true;
   renderTodo();
 
   // Guardado extra de seguridad: por si el celular cierra la app de golpe
