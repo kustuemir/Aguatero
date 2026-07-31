@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGUATERO - Test</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://kustuemir.github.io/Aguatero/styles.css">
+</head>
+<body>
+<div id="appContainer" style="display:block;">
+  <div style="padding:20px;text-align:center;">
+    <h2>Cargando app de prueba...</h2>
+    <p>Inyectando datos de test...</p>
+  </div>
+</div>
+<script>
+// Load the real app.js but intercept Supabase
+window.sb = {
+  auth: {
+    signInWithPassword: async function() { return { data: {}, error: null }; },
+    getSession: async function() { return { data: { session: null } }; },
+    signOut: async function() {},
+    resetPasswordForEmail: async function() { return { error: null }; },
+    updateUser: async function() { return { error: null }; }
+  },
+  from: function(table) {
+    return {
+      select: function() { return { eq: function() { return { maybeSingle: async function() { return { data: null }; } }; } }; },
+      upsert: async function() { return { error: null }; },
+      delete: async function() { return { eq: async function() { return { error: null }; } }; }
+    };
+  }
+};
+window.supabase = { createClient: function() { return window.sb; } };
+</script>
+<script src="https://kustuemir.github.io/Aguatero/app.js"></script>
+<script>
+// After app.js loads, fake the login
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    // Hide login screen, show app
+    var login = document.getElementById('pantallaLogin');
+    if(login) login.style.display = 'none';
+    var app = document.getElementById('appContainer');
+    if(app) app.style.display = 'block';
+    
+    // Set fake user
+    usuarioActual = { id: 'test-user-123', email: 'test@aguatero.com', nombreMarca: 'Aguatero Test' };
+    
+    // Load some test clients
+    clientes = [
+      { id: 'c1', codigo: '001', nombre: 'Juan Pérez', direccion: 'Av. San Martín 1234, Mendoza', telefono: '2615551234', dias: ['Lunes','Miércoles','Viernes'], saldo: 1500, envasesPendientes: 2, historial: [], ordenPorDia: { 'Lunes': 1, 'Miércoles': 3, 'Viernes': 2 } },
+      { id: 'c2', codigo: '002', nombre: 'María González', direccion: 'Calle Las Heras 567, Godoy Cruz', telefono: '2615555678', dias: ['Lunes','Jueves'], saldo: 0, envasesPendientes: 0, historial: [], ordenPorDia: { 'Lunes': 2, 'Jueves': 1 } },
+      { id: 'c3', codigo: '003', nombre: 'Carlos Sosa', direccion: 'Perú 890, Mendoza Centro', telefono: '2615559012', dias: ['Viernes'], saldo: 3200, envasesPendientes: 5, historial: [], ordenPorDia: { 'Viernes': 1 } },
+      { id: 'c4', codigo: '004', nombre: 'Ana Ruiz', direccion: 'Belgrano 456, Guaymallén', telefono: '', dias: ['Martes','Jueves'], saldo: 800, envasesPendientes: 1, historial: [], ordenPorDia: { 'Martes': 1, 'Jueves': 2 } },
+      { id: 'c5', codigo: '005', nombre: 'Pedro Díaz', direccion: 'Rivadavia 789, Maipú', telefono: '2615553456', dias: ['Miércoles'], saldo: 0, envasesPendientes: 0, historial: [], ordenPorDia: { 'Miércoles': 1 } }
+    ];
+    contadorClientes = 5;
+    
+    // Set today as the selected day
+    diaSeleccionado = diaDeHoy();
+    modoTodosClientes = true;
+    
+    // Initialize
+    inicializarAppLuegoDeLogin();
+    actualizarNombreMostrado();
+  }, 1000);
+});
+</script>
+</body>
+</html>
