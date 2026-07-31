@@ -1120,6 +1120,15 @@ function abrirDetalle(id){
   } else {
     cont.innerHTML = '';
   }
+  // Botón de Google Maps en el detalle
+  const mapsCont = document.getElementById('botonesMaps');
+  if(mapsCont){
+    if(c.direccion){
+      mapsCont.innerHTML = `<a class="btn chico outline" style="text-decoration:none; text-align:center; display:block;" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.direccion)}" target="_blank" rel="noopener">📍 Cómo llegar (Google Maps)</a>`;
+    } else {
+      mapsCont.innerHTML = '';
+    }
+  }
 
   renderDetalle(c);
   abrirModal('modalDetalle');
@@ -1873,6 +1882,7 @@ function tarjetaClienteBusqueda(c, i){
         <button class="btn chico" onclick="abrirStock('${c.id}')">📦 Stock</button>
         <button class="btn chico outline" onclick="clienteStockId='${c.id}'; marcarNoCompra()">No compra</button>
       </div>
+      ${c.direccion ? `<a class="btn chico outline" style="text-decoration:none; text-align:center; margin-top:4px; display:block;" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.direccion)}" target="_blank" rel="noopener">📍 Cómo llegar</a>` : ''}
     </div>
   `;
 }
@@ -1895,6 +1905,7 @@ function tarjetaCliente(c, i, mostrarBotonesStock){
         <button class="btn chico" onclick="abrirStock('${c.id}')">📦 Stock</button>
         <button class="btn chico outline" onclick="clienteStockId='${c.id}'; marcarNoCompra()">No compra</button>
       </div>` : ''}
+      ${c.direccion ? `<a class="btn chico outline" style="text-decoration:none; text-align:center; margin-top:4px; display:block;" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.direccion)}" target="_blank" rel="noopener">📍 Cómo llegar</a>` : ''}
       ${(fueraDeRuta && !yaAgregado) ? `
       <button class="btn chico naranja" style="margin-top:6px;" onclick="agregarAFueraDeReparto('${c.id}')">🚚➕ Agregar a fuera de reparto de hoy</button>` : ''}
     </div>
@@ -1970,7 +1981,12 @@ function renderPorVisitar(){
   document.getElementById('tituloDiaHoy').textContent = 'Ruta · ' + diaSeleccionado + (diaSeleccionado===diaDeHoy() ? ' (hoy)' : '');
   const filtrados = clientes
     .filter(c=> (c.dias.includes(diaSeleccionado) || clientesFueraRutaHoy.has(c.id)) && !visitasHoy.has(c.id) && pasaFiltro(c))
-    .sort((a,b)=> (a.ordenPorDia[diaSeleccionado]||0) - (b.ordenPorDia[diaSeleccionado]||0));
+    .sort((a,b)=>{
+      const aEnDia = a.dias.includes(diaSeleccionado) ? 0 : 1;
+      const bEnDia = b.dias.includes(diaSeleccionado) ? 0 : 1;
+      if(aEnDia !== bEnDia) return aEnDia - bEnDia;
+      return (a.ordenPorDia[diaSeleccionado]||0) - (b.ordenPorDia[diaSeleccionado]||0);
+    });
 
   if(filtrados.length===0){
     cont.innerHTML = '<div class="empty-msg">Ya atendiste a todos los clientes de este día 🎉<br><br><button class="btn outline" onclick="volverATodosLosClientes()">← Ver todos los clientes</button></div>';
@@ -2061,8 +2077,30 @@ function renderFueraDeReparto(){
 
 function agregarAFueraDeReparto(clienteId){
   clientesFueraRutaHoy.add(clienteId);
+  // Poner al final del orden del día
+  const maxOrden = Math.max(0, ...clientes
+    .filter(c => c.dias.includes(diaSeleccionado) || clientesFueraRutaHoy.has(c.id))
+    .map(c => c.ordenPorDia[diaSeleccionado] || 0));
+  const cli = clientes.find(c => c.id === clienteId);
+  if(cli) cli.ordenPorDia[diaSeleccionado] = maxOrden + 1;
   document.getElementById('inputBuscadorFuera').value = '';
   renderFueraDeReparto();
+  renderTodo();
+}
+
+function agregarParaVisitar(clienteId){
+  clientesFueraRutaHoy.add(clienteId);
+  // Poner al FINAL de la lista de por visitar (orden más alto)
+  const maxOrden = Math.max(0, ...clientes
+    .filter(c => c.dias.includes(diaSeleccionado) || clientesFueraRutaHoy.has(c.id))
+    .map(c => c.ordenPorDia[diaSeleccionado] || 0));
+  const cli = clientes.find(c => c.id === clienteId);
+  if(cli) cli.ordenPorDia[diaSeleccionado] = maxOrden + 1;
+  guardarEstado();
+  // Limpiar búsqueda y volver a la lista normal
+  searchTerm = '';
+  if(document.getElementById('inputBusqueda')) document.getElementById('inputBusqueda').value = '';
+  if(document.getElementById('panelBusqueda')) document.getElementById('panelBusqueda').classList.remove('activo');
   renderTodo();
 }
 
