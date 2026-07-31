@@ -1821,6 +1821,26 @@ function restaurarRespaldo(event){
 // Clientes agregados a "fuera de reparto" durante este reparto (no están programados para hoy)
 let clientesFueraRutaHoy = new Set();
 
+function tarjetaClienteBusqueda(c, i){
+  // Versión simplificada para resultados de búsqueda - sin botón de fuera de reparto
+  const visitado = visitasHoy.has(c.id);
+  const claseDeuda = c.saldo > 0 ? 'tiene-deuda' : 'al-dia';
+  return `
+    <div class="card ${claseDeuda}">
+      <div onclick="abrirDetalle('${c.id}')">
+        <h3>${i!=null ? (i+1)+'. ' : ''}${c.codigo} - ${c.nombre} ${visitado ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
+        <div class="row"><span>${c.direccion || 'Sin dirección'}</span></div>
+        <div class="row"><span>Deuda:</span><span class="${c.saldo>0?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
+        <div class="row"><span>Envases que debe:</span><span>${c.envasesPendientes}</span></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn chico" onclick="abrirStock('${c.id}')">📦 Stock</button>
+        <button class="btn chico outline" onclick="clienteStockId='${c.id}'; marcarNoCompra()">No compra</button>
+      </div>
+    </div>
+  `;
+}
+
 function tarjetaCliente(c, i, mostrarBotonesStock){
   const visitado = visitasHoy.has(c.id);
   const fueraDeRuta = !c.dias.includes(diaSeleccionado);
@@ -1863,20 +1883,29 @@ function renderPorVisitar(){
     cont.innerHTML = resultados.map((c,i)=>{
       const diasTxt = (c.dias||[]).length ? c.dias.join(', ') : 'Sin día asignado';
       const visitadoHoy = visitasHoy.has(c.id);
-      const badge = visitadoHoy
-        ? '<span style="background:#2e8b57;color:white;font-size:0.7em;padding:2px 6px;border-radius:8px;margin-left:4px;">✅ Atendido hoy</span>'
-        : '<span style="background:#e08a3e;color:white;font-size:0.7em;padding:2px 6px;border-radius:8px;margin-left:4px;">Sin atender</span>';
-      return tarjetaCliente(c,i,true).replace(
-        '<div class="card-cliente"',
-        '<div class="card-cliente"'
-      ) + '<div style="font-size:0.72em;color:#888;padding:0 12px 4px;margin-top:-6px;">📅 ' + diasTxt + badge + '</div>';
+      const enRutaHoy = c.dias.includes(diaSeleccionado) || clientesFueraRutaHoy.has(c.id);
+      let badge;
+      if(visitadoHoy){
+        badge = '<span style="background:#2e8b57;color:white;font-size:0.7em;padding:2px 6px;border-radius:8px;margin-left:4px;">✅ Atendido hoy</span>';
+      } else if(enRutaHoy){
+        badge = '<span style="background:#1565c0;color:white;font-size:0.7em;padding:2px 6px;border-radius:8px;margin-left:4px;">📌 En ruta de hoy</span>';
+      } else {
+        badge = '<span style="background:#e08a3e;color:white;font-size:0.7em;padding:2px 6px;border-radius:8px;margin-left:4px;">Sin atender</span>';
+      }
+      // Botón: si ya está en ruta de hoy, no mostrar. Si no, mostrar "Agregar para visitar"
+      const botonAgregar = (!enRutaHoy && !visitadoHoy)
+        ? '<button class="btn chico naranja" style="margin-top:6px;width:100%;" onclick="agregarParaVisitar(\''+c.id+'\')">➕ Agregar para visitar hoy</button>'
+        : '';
+      // Usar tarjetaCliente pero sin el botón de fuera de reparto (pasamos false para que no lo muestre)
+      const card = tarjetaClienteBusqueda(c, i);
+      return card + '<div style="font-size:0.72em;color:#888;padding:0 12px 4px;margin-top:-6px;">📅 ' + diasTxt + badge + '</div>' + botonAgregar;
     }).join('');
     return;
   }
 
   document.getElementById('tituloDiaHoy').textContent = 'Ruta · ' + diaSeleccionado + (diaSeleccionado===diaDeHoy() ? ' (hoy)' : '');
   const filtrados = clientes
-    .filter(c=>c.dias.includes(diaSeleccionado) && !visitasHoy.has(c.id) && pasaFiltro(c))
+    .filter(c=> (c.dias.includes(diaSeleccionado) || clientesFueraRutaHoy.has(c.id)) && !visitasHoy.has(c.id) && pasaFiltro(c))
     .sort((a,b)=> (a.ordenPorDia[diaSeleccionado]||0) - (b.ordenPorDia[diaSeleccionado]||0));
 
   if(filtrados.length===0){
@@ -1928,7 +1957,7 @@ function renderFueraDeReparto(){
   let html = '';
   
   if(agregados.length > 0){
-    html += '<div style="margin-bottom:20px;"><div class="card" style="background:var(--verde-pago); color:white;"><strong>✅ Agregados a fuera de reparto hoy (' + diaSeleccionado + ')</strong></div>' + 
+    html += '<div style="margin-bottom:20px;"><div class="card" style="background:var(--verde-pago); color:white;"><strong>✅ Agregados para visitar hoy (' + diaSeleccionado + ')</strong></div>' + 
       agregados.map(c=>tarjetaCliente(c,null,true)).join('') + '</div>';
   }
 
