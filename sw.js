@@ -1,7 +1,7 @@
 // Service Worker para AGUATERO
 // Cache con network-first: intenta red, si no hay internet usa caché.
 
-const CACHE_NOMBRE = 'aguatero-cache-v5';
+const CACHE_NOMBRE = 'aguatero-cache-v6';
 const ARCHIVOS_CACHE = [
   './',
   './index.html',
@@ -30,7 +30,13 @@ self.addEventListener('activate', function(evento){
       );
     })
   );
+  // Forzar que el nuevo SW tome control inmediatamente
   self.clients.claim();
+});
+
+// Permitir que el SW se active inmediatamente sin esperar
+self.addEventListener('message', function(evento){
+  if(evento.data === 'skipWaiting') self.skipWaiting();
 });
 
 // Estrategia: intenta la red primero (para traer datos frescos si hay internet),

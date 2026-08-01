@@ -29,12 +29,34 @@
     background: #223b4a;
   }
   * { box-sizing: border-box; }
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
     margin: 0;
     font-family: 'Segoe UI', Roboto, Arial, sans-serif;
     background: var(--arena);
     color: var(--texto);
     padding-bottom: 90px;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
+  }
+  /* Asegurar que las pantallas scrolleen bien en mobile */
+  #pantallaLogin {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  #appContainer {
+    min-height: 100vh;
+  }
+  .view {
+    -webkit-overflow-scrolling: touch;
+  }
+  .modal {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
   }
   header {
     background: linear-gradient(135deg, var(--azul-hondo), var(--azul-medio));
