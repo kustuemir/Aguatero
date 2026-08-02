@@ -206,6 +206,7 @@
     <button onclick="compartirRespaldo()">📤 Enviar respaldo (Drive / Email / WhatsApp)</button>
     <button onclick="exportarExcel()">📊 Exportar movimientos a Excel</button>
     <button onclick="document.getElementById('inputRestaurar').click()">📂 Restaurar respaldo</button>
+    <button onclick="abrirAumentoMasivo()">💲 Aumento masivo de precios</button>
     <button onclick="document.getElementById('inputNombreMarca').value = usuarioActual.nombreMarca || ''; abrirModal('modalNombreMarca'); cerrarMenus();">✏️ Cambiar nombre / marca</button>
     <button onclick="abrirModal('modalTerminos'); cerrarMenus();">📄 Términos y Privacidad</button>
     <button onclick="alternarModoOscuro()" id="btnModoOscuro">🌙 Modo oscuro</button>
@@ -272,6 +273,7 @@
     <div class="stat-box" style="background:#0b8f7a;"><span class="num" id="estB10">0</span>Vendidos 10-12L</div>
     <div class="stat-box" style="background:#8f6b0b;"><span class="num" id="estDisp">0</span>Vendidos Dispenser</div>
   </div>
+  <button class="btn verde" style="width:100%;" onclick="compartirResumenDia()">📤 Compartir resumen por WhatsApp</button>
   <button class="btn naranja" onclick="cerrarRepartoDelDia()">🔒 Cerrar reparto del día</button>
   <p style="font-size:0.78em; color:#666;" id="estadoCierreHoy"></p>
   <button class="btn outline" onclick="mostrarReporteSemanal()">📈 Ver reporte semanal</button>
@@ -663,5 +665,43 @@
 </div>
 
 <script src="app.js"></script>
+<!-- MODAL AUMENTO MASIVO DE PRECIOS -->
+<div class="modal-bg" id="modalAumentoMasivo">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalAumentoMasivo')">×</button>
+    <h2>💲 Aumento masivo de precios</h2>
+    <p style="font-size:0.85em; color:#666; margin-bottom:12px;">Subí los precios de todos los clientes de una sola vez. Solo se actualizan los productos que ya tienen precio cargado.</p>
+
+    <label>Tipo de aumento</label>
+    <div style="display:flex; gap:10px; margin-bottom:12px;">
+      <label style="display:flex; align-items:center; gap:6px; font-weight:normal;">
+        <input type="radio" name="tipoAumento" value="porcentaje" checked> Porcentaje (%)
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; font-weight:normal;">
+        <input type="radio" name="tipoAumento" value="monto"> Monto fijo ($)
+      </label>
+    </div>
+
+    <label>Valor del aumento</label>
+    <input type="number" id="inputAumentoValor" placeholder="Ej: 10 (para 10% o $10)" min="0" step="0.01">
+
+    <label style="margin-top:12px;">Aplicar a</label>
+    <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:16px;">
+      <label style="display:flex; align-items:center; gap:6px; font-weight:normal;">
+        <input type="checkbox" id="chkAumentoB20" checked> Bidón 20 Lts
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; font-weight:normal;">
+        <input type="checkbox" id="chkAumentoB10" checked> Bidón 10-12 Lts
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; font-weight:normal;">
+        <input type="checkbox" id="chkAumentoDisp" checked> Dispenser
+      </label>
+    </div>
+
+    <button class="btn naranja" style="width:100%;" onclick="aplicarAumentoMasivo()">✅ Aplicar aumento a todos los clientes</button>
+    <p style="font-size:0.78em; color:#999; margin-top:8px; text-align:center;">Los precios se redondean al número entero más cercano.</p>
+  </div>
+</div>
+
 </body>
 </html>

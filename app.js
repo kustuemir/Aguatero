@@ -196,13 +196,27 @@ async function procesarColaSync(){
 }
 
 function actualizarIndicadorSync(){
-  const badge = document.getElementById('syncBadge');
-  if(!badge) return;
-  if(colaSyncPendiente.length > 0){
-    badge.style.display = 'block';
-    badge.title = colaSyncPendiente.length + ' operaciones pendientes de sincronizar';
-  } else {
-    badge.style.display = 'none';
+  // Badge en el topbar (boton Cargar)
+  var btnCargar = document.querySelector('button[onclick="renderTodo()"]');
+  if(btnCargar){
+    if(colaSyncPendiente.length > 0){
+      btnCargar.style.background = '#e74c3c';
+      btnCargar.title = colaSyncPendiente.length + ' operaciones pendientes de sync - toca para sincronizar';
+    } else {
+      btnCargar.style.background = '';
+      btnCargar.title = 'Actualizar datos';
+    }
+  }
+  // Badge generico
+  var badge = document.getElementById('syncBadge');
+  if(badge){
+    if(colaSyncPendiente.length > 0){
+      badge.style.display = 'block';
+      badge.textContent = colaSyncPendiente.length;
+      badge.title = colaSyncPendiente.length + ' operaciones pendientes de sincronizar';
+    } else {
+      badge.style.display = 'none';
+    }
   }
 }
 
@@ -496,6 +510,27 @@ function escapeHtml(text){
   return div.innerHTML;
 }
 
+// ---------- TOAST NOTIFICATIONS (reemplaza alert) ----------
+function mostrarToast(mensaje, tipo){
+  var cont = document.getElementById('toastContainer');
+  if(!cont){
+    cont = document.createElement('div');
+    cont.id = 'toastContainer';
+    cont.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:99999; pointer-events:none;';
+    document.body.appendChild(cont);
+  }
+  var toast = document.createElement('div');
+  var bgColor = tipo === 'error' ? '#c0392b' : tipo === 'success' ? '#27ae60' : '#2c3e50';
+  toast.style.cssText = 'background:' + bgColor + '; color:white; padding:12px 20px; border-radius:8px; margin-top:8px; font-size:0.9em; box-shadow:0 4px 12px rgba(0,0,0,0.3); opacity:0; transition:opacity 0.3s; max-width:320px; text-align:center; pointer-events:auto;';
+  toast.textContent = mensaje;
+  cont.appendChild(toast);
+  setTimeout(function(){ toast.style.opacity = '1'; }, 10);
+  setTimeout(function(){
+    toast.style.opacity = '0';
+    setTimeout(function(){ if(toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+  }, 3000);
+}
+
 function verificarResetDiario(){
   // FIX: No resetear contadores antes de las 4 AM (permite repartos nocturnos)
   if(fechaContadores !== todayISO() && new Date().getHours() >= 4){
@@ -702,6 +737,31 @@ function togglePanel(id){
     document.getElementById('panelBusqueda').classList.remove('activo');
     document.getElementById(id).classList.toggle('activo');
   }
+}
+
+// ---------- COMPARTIR RESUMEN POR WHATSAPP ----------
+function compartirResumenDia(){
+  var lineas = [];
+  lineas.push('\ud83d\udcca RESUMEN DEL DIA - ' + usuarioActual.nombreMarca);
+  lineas.push('Fecha: ' + nombreDia + ' ' + isoAFechaLabel(todayISO()));
+  lineas.push('');
+  lineas.push('\u2705 Vendido: $' + ventaHoy.toFixed(0));
+  lineas.push('\ud83d\udcb0 Cobrado: $' + cobradoHoy.toFixed(0));
+  lineas.push('  \u2022 Efectivo: $' + efectivoHoy.toFixed(0));
+  lineas.push('  \u2022 Transferencia: $' + transferenciaHoy.toFixed(0));
+  lineas.push('\ud83d\udcb3 Deuda generada: $' + deudaGeneradaHoy.toFixed(0));
+  lineas.push('');
+  lineas.push('\ud83d\udce6 Bidones 20L: ' + b20VendidosHoy);
+  lineas.push('\ud83d\udce6 Bidones 10L: ' + b10VendidosHoy);
+  lineas.push('\ud83d\udcb8 Dispensers: ' + dispVendidosHoy);
+  lineas.push('\ud83d\ude9a Envases entregados: ' + envasesEntregadosHoy);
+  lineas.push('\ud83d\ude9a Envases recibidos: ' + envasesRecibidosHoy);
+  lineas.push('');
+  lineas.push('\ud83d\udee6 Visitas: ' + visitasHoy.size);
+
+  var texto = lineas.join('\n');
+  var url = 'https://wa.me/?text=' + encodeURIComponent(texto);
+  window.open(url, '_blank');
 }
 
 function mostrarEstadisticas(){
@@ -1040,6 +1100,51 @@ function renderSelectDespuesDe(){
 }
 
 // ---------- CRUD CLIENTES ----------
+// ---------- AUMENTO MASIVO DE PRECIOS ----------
+function abrirAumentoMasivo(){
+  cerrarMenus();
+  abrirModal('modalAumentoMasivo');
+}
+
+function aplicarAumentoMasivo(){
+  var tipo = document.querySelector('input[name="tipoAumento"]:checked');
+  if(!tipo){ mostrarToast('Elegí un tipo de aumento', 'error'); return; }
+  var valor = parseFloat(document.getElementById('inputAumentoValor').value) || 0;
+  if(valor <= 0){ mostrarToast('Poné un valor mayor a 0', 'error'); return; }
+
+  var aplicaB20 = document.getElementById('chkAumentoB20').checked;
+  var aplicaB10 = document.getElementById('chkAumentoB10').checked;
+  var aplicaDisp = document.getElementById('chkAumentoDisp').checked;
+  if(!aplicaB20 && !aplicaB10 && !aplicaDisp){ mostrarToast('Elegí al menos un producto', 'error'); return; }
+
+  var count = 0;
+  clientes.forEach(function(c){
+    if(aplicaB20 && c.precio > 0){
+      c.precio = tipo.value === 'porcentaje'
+        ? Math.round(c.precio * (1 + valor/100))
+        : Math.round(c.precio + valor);
+    }
+    if(aplicaB10 && c.precio10 > 0){
+      c.precio10 = tipo.value === 'porcentaje'
+        ? Math.round(c.precio10 * (1 + valor/100))
+        : Math.round(c.precio10 + valor);
+    }
+    if(aplicaDisp && c.precioDisp > 0){
+      c.precioDisp = tipo.value === 'porcentaje'
+        ? Math.round(c.precioDisp * (1 + valor/100))
+        : Math.round(c.precioDisp + valor);
+    }
+    syncCliente(c);
+    count++;
+  });
+
+  guardarEstado();
+  cerrarModal('modalAumentoMasivo');
+  renderTodo();
+  mostrarToast('Precios actualizados para ' + count + ' clientes', 'success');
+  if('vibrate' in navigator) navigator.vibrate([30, 50, 30]);
+}
+
 function guardarCliente(){
   const nombre = document.getElementById('inputNombre').value.trim();
   const telefono = document.getElementById('inputTelefono').value.trim();
@@ -1569,14 +1674,14 @@ function copiarBoleta(){
   textarea.select();
   try{
     navigator.clipboard.writeText(textarea.value).then(()=>{
-      alert('Copiado ✅ Ya podés pegarlo donde quieras (otro WhatsApp, notas, etc).');
+      mostrarToast('Copiado - ya podés pegarlo donde quieras', 'success');
     }).catch(()=>{
       document.execCommand('copy');
-      alert('Copiado ✅');
+      mostrarToast('Copiado', 'success');
     });
   }catch(e){
     document.execCommand('copy');
-    alert('Copiado ✅');
+    mostrarToast('Copiado', 'success');
   }
 }
 

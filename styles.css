@@ -481,3 +481,51 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
 .help-input-row input {
   flex: 1;
 }
+
+
+/* ===== TOAST NOTIFICATIONS ===== */
+#toastContainer {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===== SYNC BADGE ===== */
+.sync-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #e74c3c;
+  color: white;
+  font-size: 0.6em;
+  border-radius: 50%;
+  min-width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  padding: 0 3px;
+}
+
+/* ===== AUMENTO MASIVO ===== */
+#modalAumentoMasivo input[type="radio"],
+#modalAumentoMasivo input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+/* ===== BOTÓN VENTA RÁPIDA ===== */
+.btn.verde {
+  background: #27ae60;
+  color: white;
+  border: none;
+}
+.btn.verde:hover {
+  background: #229954;
+}
