@@ -94,8 +94,8 @@ async function syncCliente(c){
 async function syncBorrarCliente(clienteId){
   if(!usuarioActual) return;
   try{
-    await sb.from('movimientos').delete().eq('cliente_id', clienteId);
-    await sb.from('clientes').delete().eq('id', clienteId);
+    await sb.from('movimientos').delete().eq('cliente_id', clienteId).eq('user_id', usuarioActual.id);
+    await sb.from('clientes').delete().eq('id', clienteId).eq('user_id', usuarioActual.id);
   }catch(e){ /* silencioso */ }
 }
 
@@ -112,7 +112,7 @@ async function syncMovimiento(entry, clienteId){
 async function syncBorrarMovimiento(entryId){
   if(!usuarioActual) return;
   try{
-    await sb.from('movimientos').delete().eq('id', entryId);
+    await sb.from('movimientos').delete().eq('id', entryId).eq('user_id', usuarioActual.id);
   }catch(e){ /* silencioso */ }
 }
 
@@ -162,6 +162,56 @@ async function syncResumenDiario(){
   }catch(e){ /* silencioso */ }
 }
 
+// FIX: COLA DE SINCRONIZACIÓN OFFLINE
+// Si no hay internet, las operaciones quedan en cola y se reintentan al recuperar conexión
+var colaSyncPendiente = JSON.parse(localStorage.getItem('colaSyncPendiente') || '[]');
+
+function agregarAColaSync(operacion){
+  colaSyncPendiente.push(operacion);
+  localStorage.setItem('colaSyncPendiente', JSON.stringify(colaSyncPendiente));
+}
+
+async function procesarColaSync(){
+  if(colaSyncPendiente.length === 0) return;
+  console.log('Procesando cola de sync:', colaSyncPendiente.length, 'operaciones pendientes');
+  const pendientes = [...colaSyncPendiente];
+  colaSyncPendiente = [];
+  localStorage.setItem('colaSyncPendiente', JSON.stringify(colaSyncPendiente));
+  for(const op of pendientes){
+    try{
+      if(op.tipo === 'cliente') await syncCliente(op.data);
+      else if(op.tipo === 'movimiento') await syncMovimiento(op.data, op.clienteId);
+      else if(op.tipo === 'borrarCliente') await syncBorrarCliente(op.clienteId);
+      else if(op.tipo === 'borrarMovimiento') await syncBorrarMovimiento(op.entryId);
+      else if(op.tipo === 'actualizarMovimiento') await syncActualizarMovimiento(op.data, op.clienteId);
+      else if(op.tipo === 'stock') await syncStock();
+      else if(op.tipo === 'resumen') await syncResumenDiario();
+    }catch(e){
+      // Si falla de nuevo, re-encolar
+      colaSyncPendiente.push(op);
+    }
+  }
+  localStorage.setItem('colaSyncPendiente', JSON.stringify(colaSyncPendiente));
+  actualizarIndicadorSync();
+}
+
+function actualizarIndicadorSync(){
+  const badge = document.getElementById('syncBadge');
+  if(!badge) return;
+  if(colaSyncPendiente.length > 0){
+    badge.style.display = 'block';
+    badge.title = colaSyncPendiente.length + ' operaciones pendientes de sincronizar';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+window.addEventListener('online', function(){
+  console.log('Conexión recuperada - procesando cola de sync');
+  procesarColaSync();
+});
+
+// FIX: Wrap sync functions to use queue on failure
 // BAJAR TODOS LOS DATOS DE SUPABASE (al iniciar sesión en un celular nuevo)
 async function descargarDatosSupabase(){
   if(!usuarioActual) return;
@@ -185,11 +235,24 @@ async function descargarDatosSupabase(){
       });
     }
 
-    // Reconstruir estado
-    clientes = clientesData.map(row => clienteFromSupabase(row, movsPorCliente[row.id] || []));
+    // FIX: MERGE inteligente - no sobreescribir datos locales no sincronizados
+    if(clientes.length > 0){
+      // Ya hay datos locales. Hacer merge por ID (mantener locales, actualizar con nube si hay conflictos)
+      const idsLocales = new Set(clientes.map(c => c.id));
+      const clientesNuevos = clientesData.filter(row => !idsLocales.has(row.id));
+      // Solo agregar clientes que no existen localmente
+      clientesNuevos.forEach(row => {
+        clientes.push(clienteFromSupabase(row, movsPorCliente[row.id] || []));
+      });
+      console.log('Merge: ', clientesNuevos.length, 'clientes nuevos de Supabase, ', clientes.length, 'total');
+    } else {
+      // No hay datos locales - descargar todo de Supabase (celular nuevo)
+      clientes = clientesData.map(row => clienteFromSupabase(row, movsPorCliente[row.id] || []));
+    }
     contadorClientes = clientes.reduce((max, c) => Math.max(max, c.codigo), 0);
 
-    if(stockData){
+    if(stockData && (!stockCamion.b20 && !stockCamion.b10 && !stockCamion.disp)){
+      // Solo cargar stock de la nube si local está vacío
       stockCamion = { b20: stockData.b20 || 0, b10: stockData.b10 || 0, disp: stockData.disp || 0 };
     }
 
@@ -422,8 +485,20 @@ function actualizarFechaHoyLabel(){
 
 function generarId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
+// FIX: Evitar error de redondeo flotante en evaluación de deudas
+function tieneDeuda(c){ return Math.round(c.saldo * 100) > 0; }
+
+// FIX: Sanitizar HTML para prevenir XSS
+function escapeHtml(text){
+  if(!text) return '';
+  var div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 function verificarResetDiario(){
-  if(fechaContadores !== todayISO()){
+  // FIX: No resetear contadores antes de las 4 AM (permite repartos nocturnos)
+  if(fechaContadores !== todayISO() && new Date().getHours() >= 4){
     ventaHoy = 0; cobradoHoy = 0; efectivoHoy = 0; transferenciaHoy = 0;
     entregadoHoy = 0; deudaGeneradaHoy = 0; envasesEntregadosHoy = 0; envasesRecibidosHoy = 0;
     b20VendidosHoy = 0; b10VendidosHoy = 0; dispVendidosHoy = 0;
@@ -908,7 +983,7 @@ function renderConsultaDia(){
       <div onclick="abrirDetalle('${c.id}')">
         <h3>${c.codigo} - ${c.nombre}</h3>
         <div class="row"><span>${c.direccion || ''}</span></div>
-        <div class="row"><span>Saldo:</span><span class="${c.saldo>0?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
+        <div class="row"><span>Saldo:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
         <div class="row"><span>Último movimiento:</span><span>${c.historial.length > 0 ? c.historial[c.historial.length-1].fechaISO : 'Nunca'}</span></div>
       </div>
       ${(puedeAgregar && !yaAgregado) ? `<button class="btn chico naranja" style="margin-top:6px;" onclick="agregarAFueraDeReparto('${c.id}')">🚚➕ Agregar a fuera de reparto de hoy</button>` : ''}
@@ -1097,6 +1172,12 @@ function deshacerEliminacion(){
   if(!ultimoClienteEliminado) return;
   clientes.push(ultimoClienteEliminado);
   syncCliente(ultimoClienteEliminado);
+  // FIX: Reinsertar todos los movimientos del cliente en Supabase
+  if(ultimoClienteEliminado.historial){
+    ultimoClienteEliminado.historial.forEach(function(h){
+      syncMovimiento(h, ultimoClienteEliminado.id);
+    });
+  }
   ultimoClienteEliminado = null;
   document.getElementById('bannerDeshacer').classList.remove('activo');
   clearTimeout(window._deshacerTimeout);
@@ -1137,7 +1218,7 @@ function abrirDetalle(id){
 function renderDetalle(c){
   const saldoEl = document.getElementById('saldoDetalle');
   saldoEl.textContent = '$' + c.saldo.toFixed(0);
-  saldoEl.className = c.saldo > 0 ? 'deuda' : 'saldo-ok';
+  saldoEl.className = tieneDeuda(c) ? 'deuda' : 'saldo-ok';
   document.getElementById('envasesDetalle').textContent = c.envasesPendientes;
 
   const hist = document.getElementById('historialCliente');
@@ -1162,9 +1243,11 @@ function renderDetalle(c){
 
 // ---------- MODAL STOCK (registrar compra) ----------
 function abrirStock(id){
+  // FIX: Advertir pero no bloquear si no hay stock cargado
   if(stockCamion.b20 <= 0 && stockCamion.b10 <= 0 && stockCamion.disp <= 0){
-    alert('⚠️ Sin stock\n\nNo tenés bidones ni dispensers cargados en el camión.\n\nAndá a ☰ → "Stock del camión" y cargá lo que sacaste antes de empezar a vender.');
-    return;
+    if(!confirm('⚠️ No tenés stock cargado en la app.\n\n¿Querés registrar la venta de todos modos?\n\n(También podés ir a ☰ → "Stock del camión" para cargarlo antes)')){
+      return;
+    }
   }
   clienteStockId = id;
   const c = clientes.find(x=>x.id===id);
@@ -1224,9 +1307,11 @@ function confirmarStock(tipo){
   const envases = parseInt(document.getElementById('stkEnvases').value) || 0;
   if(b20 === 0 && b10 === 0 && disp === 0 && envases === 0) return;
 
+  // FIX: Advertir pero permitir venta con stock insuficiente
   if(b20 > stockCamion.b20 || b10 > stockCamion.b10 || disp > stockCamion.disp){
-    alert(`⚠️ Sin stock suficiente\n\nTe quedan: ${stockCamion.b20} de 20L, ${stockCamion.b10} de 10L, ${stockCamion.disp} dispensers.\n\nAjustá la cantidad o cargá más stock desde ☰ → "Stock del camión".`);
-    return;
+    if(!confirm(`⚠️ Stock insuficiente en la app\n\nTe quedan: ${stockCamion.b20} de 20L, ${stockCamion.b10} de 10L, ${stockCamion.disp} dispensers.\n\n¿Registrar la venta de todos modos?`)){
+      return;
+    }
   }
 
   const costo = b20*c.precio + b10*(c.precio10||0) + disp*(c.precioDisp||0);
@@ -1279,7 +1364,10 @@ function marcarNoCompra(){
   c.historial.push(entry);
   syncMovimiento(entry, c.id);
   visitasHoy.add(c.id);
-  moverAlFinalDelDia(c.id, diaSeleccionado);
+  // FIX: No mover al final del dia - preserva el orden de la ruta
+  // moverAlFinalDelDia(c.id, diaSeleccionado);
+  // FIX: Vibración de confirmación
+  if('vibrate' in navigator) navigator.vibrate(30);
   cerrarModal('modalStock');
   renderTodo();
 }
@@ -1628,6 +1716,11 @@ function anularMovimiento(){
   syncCliente(c);
   syncStock();
 
+  // FIX: Remover de visitasHoy si no tiene otros movimientos del día
+  const tieneOtrosHoy = c.historial.some(h => h.fechaISO === todayISO() && h.id !== entry.id);
+  if(!tieneOtrosHoy){
+    visitasHoy.delete(c.id);
+  }
   movimientoEditando = null;
   cerrarModal('modalConfirmarAnular');
   cerrarModal('modalEditarMov');
@@ -1869,13 +1962,13 @@ let clientesFueraRutaHoy = new Set();
 function tarjetaClienteBusqueda(c, i){
   // Versión simplificada para resultados de búsqueda - sin botón de fuera de reparto
   const visitado = visitasHoy.has(c.id);
-  const claseDeuda = c.saldo > 0 ? 'tiene-deuda' : 'al-dia';
+  const claseDeuda = tieneDeuda(c) ? 'tiene-deuda' : 'al-dia';
   return `
     <div class="card ${claseDeuda}">
       <div onclick="abrirDetalle('${c.id}')">
-        <h3>${i!=null ? (i+1)+'. ' : ''}${c.codigo} - ${c.nombre} ${visitado ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
-        <div class="row"><span>${c.direccion || 'Sin dirección'}</span></div>
-        <div class="row"><span>Deuda:</span><span class="${c.saldo>0?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
+        <h3>${i!=null ? (i+1)+'. ' : ''}${c.codigo} - ${escapeHtml(c.nombre)} ${visitado ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
+        <div class="row"><span>${escapeHtml(c.direccion || 'Sin dirección')}</span></div>
+        <div class="row"><span>Deuda:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
         <div class="row"><span>Envases que debe:</span><span>${c.envasesPendientes}</span></div>
       </div>
       <div class="btn-row">
@@ -1887,23 +1980,61 @@ function tarjetaClienteBusqueda(c, i){
   `;
 }
 
+// FIX: Venta rápida - 1 bidón 20L efectivo sin abrir modales
+function ventaRapida(clienteId){
+  const c = clientes.find(x=>x.id===clienteId);
+  if(!c) return;
+  if(!c.precio || c.precio <= 0){
+    alert('Este cliente no tiene precio configurado. Tocá el cliente → Editar para asignarle un precio.');
+    abrirStock(clienteId);
+    return;
+  }
+  // Confirmar
+  if(!confirm('Registrar: 1 bidón 20L a ' + c.nombre + ' - $' + c.precio.toFixed(0) + ' (Efectivo)')) return;
+  
+  const ahora = new Date();
+  const entry = {
+    id: generarId(),
+    tipo: 'compra',
+    fechaISO: todayISO(),
+    hora: ahora.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
+    b20: 1, b10: 0, disp: 0, bidones: 1, envases: 0,
+    costo: c.precio,
+    formaPago: 'efectivo',
+    montoPagado: c.precio
+  };
+  c.historial.push(entry);
+  aplicarEfectoMovimiento(c, entry);
+  syncMovimiento(entry, c.id);
+  syncCliente(c);
+  stockCamion.b20 = Math.max(0, stockCamion.b20 - 1);
+  syncStock();
+  syncResumenDiario();
+  visitasHoy.add(c.id);
+  // FIX: No mover al final del dia
+  // moverAlFinalDelDia(c.id, diaSeleccionado);
+  if('vibrate' in navigator) navigator.vibrate(50);
+  renderTodo();
+}
+
 function tarjetaCliente(c, i, mostrarBotonesStock){
   const visitado = visitasHoy.has(c.id);
   const fueraDeRuta = !c.dias.includes(diaSeleccionado);
   const yaAgregado = clientesFueraRutaHoy.has(c.id);
-  const claseDeuda = c.saldo > 0 ? 'tiene-deuda' : 'al-dia';
+  const claseDeuda = tieneDeuda(c) ? 'tiene-deuda' : 'al-dia';
   return `
     <div class="card ${claseDeuda}">
       <div onclick="abrirDetalle('${c.id}')">
-        <h3>${i!=null ? (i+1)+'. ' : ''}${c.codigo} - ${c.nombre} ${visitado ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
-        <div class="row"><span>${c.direccion || 'Sin dirección'}</span></div>
-        <div class="row"><span>Deuda:</span><span class="${c.saldo>0?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
+        <h3>${i!=null ? (i+1)+'. ' : ''}${c.codigo} - ${escapeHtml(c.nombre)} ${visitado ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
+        <div class="row"><span>${escapeHtml(c.direccion || 'Sin dirección')}</span></div>
+        <div class="row"><span>Deuda:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
         <div class="row"><span>Envases que debe:</span><span>${c.envasesPendientes}</span></div>
       </div>
       ${mostrarBotonesStock ? `
       <div class="btn-row">
         <button class="btn chico" onclick="abrirStock('${c.id}')">📦 Stock</button>
         <button class="btn chico outline" onclick="clienteStockId='${c.id}'; marcarNoCompra()">No compra</button>
+        <button class="btn chico verde" style="white-space:nowrap;" onclick="ventaRapida('${c.id}')">⚡ 1x20L$</button>
       </div>` : ''}
       ${c.direccion ? `<a class="btn chico outline" style="text-decoration:none; text-align:center; margin-top:4px; display:block;" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.direccion)}" target="_blank" rel="noopener">📍 Cómo llegar</a>` : ''}
       ${(fueraDeRuta && !yaAgregado) ? `
@@ -1962,13 +2093,13 @@ function renderPorVisitar(){
     cont.innerHTML = filtrados.map((c,i)=>{
       const diasTxt = (c.dias||[]).length ? c.dias.join(', ') : 'Sin día';
       const visitadoHoy = visitasHoy.has(c.id);
-      const claseDeuda = c.saldo > 0 ? 'tiene-deuda' : 'al-dia';
+      const claseDeuda = tieneDeuda(c) ? 'tiene-deuda' : 'al-dia';
       return `
         <div class="card ${claseDeuda}">
           <div onclick="abrirDetalle('${c.id}')">
-            <h3>${(i+1)}. ${c.codigo} - ${c.nombre} ${visitadoHoy ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
-            <div class="row"><span>${c.direccion || 'Sin dirección'}</span></div>
-            <div class="row"><span>Deuda:</span><span class="${c.saldo>0?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
+            <h3>${(i+1)}. ${c.codigo} - ${escapeHtml(c.nombre)} ${visitadoHoy ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
+            <div class="row"><span>${escapeHtml(c.direccion || 'Sin dirección')}</span></div>
+            <div class="row"><span>Deuda:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
             <div class="row"><span>Envases que debe:</span><span>${c.envasesPendientes}</span></div>
           </div>
           <div style="font-size:0.72em;color:#888;padding:0 12px 4px;">📅 ${diasTxt}</div>
@@ -2305,4 +2436,66 @@ function inicializarAppLuegoDeLogin(){
   window.addEventListener('pagehide', guardarEstado);
   window.addEventListener('beforeunload', guardarEstado);
   setInterval(guardarEstado, 10000); // respaldo silencioso cada 10 segundos
+}
+// ---------- BOT DE AYUDA ----------
+function toggleHelpBot(){
+  var panel = document.getElementById('helpPanel');
+  if(!panel) return;
+  panel.classList.toggle('active');
+  if(panel.classList.contains('active')){
+    setTimeout(function(){ var inp = document.getElementById('helpInput'); if(inp) inp.focus(); }, 100);
+  }
+}
+
+function enviarPreguntaHelp(){
+  var input = document.getElementById('helpInput');
+  var messages = document.getElementById('helpMessages');
+  if(!input || !messages) return;
+  var preg = input.value.trim();
+  if(!preg) return;
+
+  var divUser = document.createElement('div');
+  divUser.className = 'help-message user';
+  divUser.textContent = preg;
+  messages.appendChild(divUser);
+  input.value = '';
+
+  var respuesta = responderHelpBot(preg);
+  setTimeout(function(){
+    var divBot = document.createElement('div');
+    divBot.className = 'help-message bot';
+    divBot.textContent = respuesta;
+    messages.appendChild(divBot);
+    messages.scrollTop = messages.scrollHeight;
+    if('vibrate' in navigator) navigator.vibrate(30);
+  }, 400);
+}
+
+function responderHelpBot(pregunta){
+  var p = pregunta.toLowerCase();
+
+  if(p.match(/hola|buenas|hey|qu\u00e9 tal/)) return '\u00a1Hola! \ud83d\udc4b \u00bfEn qu\u00e9 te puedo ayudar? Preguntame sobre clientes, ventas, stock, deudas, rutas o cualquier problema.';
+  if(p.match(/agregar.*cliente|nuevo.*cliente|dar de alta|registrar.*cliente/)) return 'Para agregar un cliente: toc\u00e1 el bot\u00f3n \u2795\ud83d\udc64 arriba a la derecha. Complet\u00e1 nombre, tel\u00e9fono, direcci\u00f3n, precio y los d\u00edas de reparto.';
+  if(p.match(/venta|cargar|registrar.*bid\u00f3n|vender/)) return 'Para registrar una venta: toc\u00e1 el cliente \u2192 "\ud83d\udce6 Stock" \u2192 ingres\u00e1 cantidad con + y - \u2192 eleg\u00ed pago (Efectivo/Transferencia) \u2192 "Confirmar". Tambi\u00e9n pod\u00e9s usar \u26a1 para venta r\u00e1pida de 1 bid\u00f3n 20L en efectivo.';
+  if(p.match(/stock|camion|cami\u00f3n|cuantos|cu\u00e1ntos.*bid\u00f3n/)) return 'Para ver o cargar el stock: men\u00fa \u2630 \u2192 "Stock del cami\u00f3n". Ah\u00ed ves cu\u00e1ntos bidones te quedan y carg\u00e1s el stock inicial antes de salir.';
+  if(p.match(/deuda|saldo|debe|cobrar/)) return 'El saldo se actualiza solo al registrar ventas y pagos. Los clientes con deuda aparecen con borde rojo. Toc\u00e1 el cliente para ver el detalle e historial.';
+  if(p.match(/ruta|orden|d\u00eda|reparto|lunes|martes|mi\u00e9rcoles|jueves|viernes|s\u00e1bado|domingo/)) return 'Para cambiar el d\u00eda de reparto: toc\u00e1 el cliente \u2192 Editar \u2192 d\u00edas asignados (Lun a Dom). Para ver clientes de un d\u00eda espec\u00edfico, us\u00e1 \ud83d\udcc5 arriba.';
+  if(p.match(/no compra|no.*visit|saltar|pasar/)) return 'Si un cliente no compra en su d\u00eda, toc\u00e1 "No compra" en su tarjeta. Se marca como visitado sin registrar venta.';
+  if(p.match(/transferencia|transfer.*pend|confirmar.*transfer/)) return 'Las transferencias pendientes aparecen con el bot\u00f3n \ud83d\udd50 arriba. Tocalo para verlas y confirmarlas cuando te llegue el dinero.';
+  if(p.match(/resumen|caja|total|recaud|ganancia|cuanto|cu\u00e1nto.*vend\u00ed/)) return 'Para ver el resumen del d\u00eda: men\u00fa \u2630 \u2192 "Resumen del d\u00eda". Muestra total vendido, efectivo, transferencias, deudas y bidones.';
+  if(p.match(/exportar|excel|backup|respaldo|descargar.*datos/)) return 'Para exportar datos: men\u00fa \u2630 \u2192 "Exportar a Excel" o "Respaldo JSON". Te descarga un archivo con todos tus datos.';
+  if(p.match(/borrar.*cliente|eliminar.*cliente|sacar.*cliente/)) return 'Para borrar un cliente: abr\u00ed su tarjeta \u2192 "Eliminar". Hay un bot\u00f3n "Deshacer" abajo por si te equivocaste. El historial se restaura autom\u00e1ticamente.';
+  if(p.match(/precio|cambiar.*precio|aumentar|subir.*precio/)) return 'Para cambiar el precio: toc\u00e1 el cliente \u2192 Editar. Pod\u00e9s cambiar precio de bid\u00f3n 20L, 10L y dispenser. (Pronto: aumento masivo de precios).';
+  if(p.match(/internet|sin conexion|sin conexi\u00f3n|offline|no.*se\u00f1al|sin.*se\u00f1al/)) return '\u00a1Tranquilo! Aguatero funciona sin internet. Las ventas se guardan en tu celular. Cuando recuperes se\u00f1al, se sincronizan solas con la nube. \ud83d\udcf6';
+  if(p.match(/whatsapp|comprobante|boleta|enviar.*comprobante/)) return 'Para enviar un comprobante por WhatsApp: abr\u00ed el cliente \u2192 historial \u2192 bot\u00f3n \ud83e\udd9e. Ah\u00ed ves un bot\u00f3n para enviarlo directo por WhatsApp al cliente.';
+  if(p.match(/mapa|gps|direccion|direcci\u00f3n|como llegar|c\u00f3mo llegar|ubicacion|ubicaci\u00f3n/)) return 'Cada cliente con direcci\u00f3n tiene un bot\u00f3n "\ud83d\udccd C\u00f3mo llegar" que abre Google Maps directamente. Toc\u00e1 el cliente y buscalo en su tarjeta.';
+  if(p.match(/deshacer|anular|eliminar.*venta|borrar.*movimiento/)) return 'Para anular una venta: toc\u00e1 el cliente \u2192 historial \u2192 "Editar" en el movimiento \u2192 "Anular". Se revierten saldos, stock y envases.';
+  if(p.match(/modo oscuro|tema|noche|claro|oscuro/)) return 'Para activar el modo oscuro: men\u00fa \u2630 \u2192 "Modo oscuro".';
+  if(p.match(/suscripcion|suscripci\u00f3n|pago|membresia|membres\u00eda|vencio|venci\u00f3|cobro/)) return 'La suscripci\u00f3n de Aguatero es mensual. Si venci\u00f3, toc\u00e1 el bot\u00f3n de pago en pantalla. Tus datos no se eliminan por falta de pago.';
+  if(p.match(/contrase\u00f1a|olvide|olvid\u00e9|no.*puedo.*entrar|login|sesion|sesi\u00f3n/)) return 'Si olvidaste tu contrase\u00f1a: pantalla de inicio \u2192 "\u00bfOlvidaste tu contrase\u00f1a?" \u2192 te enviamos un email para cambiarla.';
+  if(p.match(/error|problema|no funciona|falla|bug/)) return 'Lo siento \ud83d\ude4f Prob\u00e1 cerrar y abrir la app. Si persiste, contame qu\u00e9 estabas haciendo cuando fall\u00f3 y reportalo a quien te dio acceso.';
+  if(p.match(/gracias|genial|buenisimo|buen\u00edsimo|perfecto|excelente/)) return '\u00a1De nada! \ud83d\ude04 Preguntame cuando quieras.';
+  if(p.match(/que.*podes|qu\u00e9.*pod\u00e9s|que.*sabes|qu\u00e9.*sab\u00e9s|ayuda|opciones/)) return 'Puedo ayudarte con: agregar clientes, ventas, stock, deudas, rutas, transferencias, exportar datos, modo oscuro, WhatsApp, GPS y m\u00e1s. \u00bfQu\u00e9 necesit\u00e1s?';
+
+  return 'Mmm, no estoy seguro de eso \ud83e\uddd0 Pod\u00e9s preguntarme sobre: clientes, ventas, stock, deudas, rutas, transferencias, exportar datos o cualquier problema que tengas.';
 }

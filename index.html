@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="AGUATERO">
 <meta name="theme-color" content="#0b3d5c">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230b3d5c'/%3E%3Ctext x='50' y='72' font-size='48' text-anchor='middle'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
@@ -166,17 +166,34 @@
   <div id="indicadorSinConexion" style="display:none; text-align:center; background:#c0392b; color:white; font-size:0.75em; padding:3px;">📴 Sin conexión — trabajando offline, se guarda todo igual</div>
   <div style="text-align:center; font-size:0.72em; opacity:0.75;" id="nombreMarcaMostrado"></div>
   <div class="topbar">
-    <button class="icon-btn" onclick="toggleMenu()">☰</button>
-    <button class="icon-btn" id="btnAgregarTop">➕👤</button>
-    <button class="icon-btn" onclick="togglePanel('panelBusqueda')">🔍</button>
-    <button class="icon-btn" style="position:relative;" onclick="mostrarTransferenciasPendientes()">
-      🕒<span id="badgeTransferencias" style="display:none; position:absolute; top:-2px; right:-2px; background:#e74c3c; color:white; font-size:0.6em; border-radius:50%; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px;"></span>
+    <button class="icon-btn" onclick="toggleMenu()" aria-label="Abrir menú" title="Abrir menú">
+      <span>☰</span>
+      <span style="font-size:0.55em; display:block; margin-top:2px;">Menú</span>
     </button>
-    <button class="icon-btn" onclick="togglePanel('diaDropdown')">📅</button>
-    <button class="icon-btn" onclick="renderTodo()">🔄</button>
+    <button class="icon-btn" id="btnAgregarTop" aria-label="Agregar cliente" title="Agregar cliente">
+      <span>➕👤</span>
+      <span style="font-size:0.55em; display:block; margin-top:2px;">Nuevo</span>
+    </button>
+    <button class="icon-btn" onclick="togglePanel('panelBusqueda')" aria-label="Buscar cliente" title="Buscar cliente">
+      <span>🔍</span>
+      <span style="font-size:0.55em; display:block; margin-top:2px;">Buscar</span>
+    </button>
+    <button class="icon-btn" style="position:relative;" onclick="mostrarTransferenciasPendientes()" aria-label="Transferencias pendientes" title="Transferencias pendientes">
+      <span>🕒</span><span id="badgeTransferencias" style="display:none; position:absolute; top:-2px; right:-2px; background:#e74c3c; color:white; font-size:0.6em; border-radius:50%; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 3px;"></span>
+      <span style="font-size:0.55em; display:block; margin-top:2px;">Pend.</span>
+    </button>
+    <button class="icon-btn" onclick="togglePanel('diaDropdown')" aria-label="Consultar otro día" title="Consultar otro día">
+      <span>📅</span>
+      <span style="font-size:0.55em; display:block; margin-top:2px;">Día</span>
+    </button>
+    <button class="icon-btn" onclick="renderTodo()" aria-label="Actualizar datos" title="Actualizar datos">
+      <span>🔄</span>
+      <span style="font-size:0.55em; display:block; margin-top:2px;">Cargar</span>
+    </button>
   </div>
 
   <div class="menu-dropdown" id="menuDropdown">
+    <div style="padding:8px 16px; font-size:0.7em; text-transform:uppercase; opacity:0.5; letter-spacing:1px;">Operación diaria</div>
     <button onclick="abrirModalCargarReparto()">📥 Cargar reparto del día</button>
     <button onclick="importarDesdeContactos()">📇 Importar clientes desde Contactos</button>
     <button onclick="mostrarEstadisticas()">📊 Resumen del día</button>
@@ -184,6 +201,7 @@
     <button onclick="mostrarStockCamion()">🚚 Stock del camión</button>
     <button onclick="mostrarTransferenciasPendientes()">🕒 Transferencias pendientes</button>
     <button onclick="mostrarReporteSemanal()">📈 Reporte semanal</button>
+    <div style="padding:8px 16px; font-size:0.7em; text-transform:uppercase; opacity:0.5; letter-spacing:1px;">Configuración y respaldo</div>
     <button onclick="exportarRespaldo()">💾 Descargar respaldo</button>
     <button onclick="compartirRespaldo()">📤 Enviar respaldo (Drive / Email / WhatsApp)</button>
     <button onclick="exportarExcel()">📊 Exportar movimientos a Excel</button>
@@ -205,7 +223,7 @@
     <div class="filtro-tabs" id="filtroTabs"></div>
     <div style="display:flex; gap:6px;">
       <input type="text" id="inputBusqueda" placeholder="Búsqueda por nombre de cliente" oninput="onBuscar()" style="flex:1;">
-      <button class="btn chico" id="btnBusquedaVoz" onclick="buscarPorVoz()" title="Buscar por voz">🎤</button>
+      <button class="btn chico" id="btnBusquedaVoz" onclick="buscarPorVoz()" title="Buscar por voz" aria-label="Buscar por voz">🎤</button>
     </div>
   </div>
 
@@ -379,7 +397,7 @@
 </div>
 
 
-<button class="fab" id="btnAgregar">+</button>
+<button class="fab" id="btnAgregar" aria-label="Agregar cliente">+</button>
 
 <button id="btnInstalarApp" style="display:none; position:fixed; bottom:80px; left:12px; right:12px; z-index:70; background:var(--naranja); color:white; border:none; padding:14px; border-radius:10px; font-size:1em; font-weight:bold;">
   📲 Instalar AGUATERO en la pantalla de inicio
@@ -613,6 +631,21 @@
     <label>Nombre / Marca</label>
     <input type="text" id="inputNombreMarca" placeholder="Ej: Juan Pérez, o Aguas del Sur">
     <button class="btn naranja" onclick="guardarNombreMarca()">Guardar</button>
+  </div>
+</div>
+
+<button class="help-bubble" onclick="toggleHelpBot()" aria-label="Ayuda">❓</button>
+<div class="help-panel" id="helpPanel">
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid #eee;">
+    <strong>🤖 Ayuda Aguatero</strong>
+    <button onclick="toggleHelpBot()" style="background:none;border:none;font-size:1.3em;color:#999;">×</button>
+  </div>
+  <div class="help-messages" id="helpMessages">
+    <div class="help-message bot">¡Hola! 👋 Soy el bot de ayuda de Aguatero. ¿Qué querés saber? Preguntame cómo usar la app, qué hace cada botón, o contame si tenés algún problema.</div>
+  </div>
+  <div class="help-input-row">
+    <input type="text" id="helpInput" placeholder="Escribí tu pregunta..." onkeypress="if(event.key==='Enter') enviarPreguntaHelp()">
+    <button class="btn naranja chico" onclick="enviarPreguntaHelp()" style="width:auto; padding:10px 14px; margin:0;">➤</button>
   </div>
 </div>
 
