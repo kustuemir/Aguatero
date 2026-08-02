@@ -510,6 +510,23 @@ function escapeHtml(text){
   return div.innerHTML;
 }
 
+// ---------- FORMATO DE MONEDA (separador de miles estilo AR) ----------
+function formatMoney(n){
+  if(n === undefined || n === null || isNaN(n)) return '0';
+  var neg = n < 0;
+  n = Math.abs(Math.round(n));
+  var str = n.toString();
+  var formatted = '';
+  var count = 0;
+  for(var i = str.length - 1; i >= 0; i--){
+    if(count > 0 && count % 3 === 0) formatted = '.' + formatted;
+    formatted = str[i] + formatted;
+    count++;
+  }
+  return (neg ? '-' : '') + formatted;
+}
+function $(amt){ return '$' + formatMoney(amt); }
+
 // ---------- TOAST NOTIFICATIONS (reemplaza alert) ----------
 function mostrarToast(mensaje, tipo){
   var cont = document.getElementById('toastContainer');
@@ -529,6 +546,25 @@ function mostrarToast(mensaje, tipo){
     toast.style.opacity = '0';
     setTimeout(function(){ if(toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
   }, 3000);
+}
+
+// ---------- DEUDA TOTAL (counter en el header) ----------
+function calcularDeudaTotal(){
+  var total = 0;
+  clientes.forEach(function(c){ if(c.saldo > 0) total += c.saldo; });
+  return total;
+}
+
+function actualizarDeudaTotal(){
+  var el = document.getElementById('deudaTotalBadge');
+  if(!el) return;
+  var total = calcularDeudaTotal();
+  if(total > 0){
+    el.style.display = 'inline-block';
+    el.textContent = 'Deuda afuera: $' + formatMoney(total);
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 function verificarResetDiario(){
@@ -745,11 +781,11 @@ function compartirResumenDia(){
   lineas.push('\ud83d\udcca RESUMEN DEL DIA - ' + usuarioActual.nombreMarca);
   lineas.push('Fecha: ' + nombreDia + ' ' + isoAFechaLabel(todayISO()));
   lineas.push('');
-  lineas.push('\u2705 Vendido: $' + ventaHoy.toFixed(0));
-  lineas.push('\ud83d\udcb0 Cobrado: $' + cobradoHoy.toFixed(0));
-  lineas.push('  \u2022 Efectivo: $' + efectivoHoy.toFixed(0));
-  lineas.push('  \u2022 Transferencia: $' + transferenciaHoy.toFixed(0));
-  lineas.push('\ud83d\udcb3 Deuda generada: $' + deudaGeneradaHoy.toFixed(0));
+  lineas.push('\u2705 Vendido: $' + formatMoney(ventaHoy));
+  lineas.push('\ud83d\udcb0 Cobrado: $' + formatMoney(cobradoHoy));
+  lineas.push('  \u2022 Efectivo: $' + formatMoney(efectivoHoy));
+  lineas.push('  \u2022 Transferencia: $' + formatMoney(transferenciaHoy));
+  lineas.push('\ud83d\udcb3 Deuda generada: $' + formatMoney(deudaGeneradaHoy));
   lineas.push('');
   lineas.push('\ud83d\udce6 Bidones 20L: ' + b20VendidosHoy);
   lineas.push('\ud83d\udce6 Bidones 10L: ' + b10VendidosHoy);
@@ -1043,7 +1079,7 @@ function renderConsultaDia(){
       <div onclick="abrirDetalle('${c.id}')">
         <h3>${c.codigo} - ${c.nombre}</h3>
         <div class="row"><span>${c.direccion || ''}</span></div>
-        <div class="row"><span>Saldo:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
+        <div class="row"><span>Saldo:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">${$(c.saldo)}</span></div>
         <div class="row"><span>Último movimiento:</span><span>${c.historial.length > 0 ? c.historial[c.historial.length-1].fechaISO : 'Nunca'}</span></div>
       </div>
       ${(puedeAgregar && !yaAgregado) ? `<button class="btn chico naranja" style="margin-top:6px;" onclick="agregarAFueraDeReparto('${c.id}')">🚚➕ Agregar a fuera de reparto de hoy</button>` : ''}
@@ -1316,13 +1352,25 @@ function abrirDetalle(id){
     }
   }
 
+  // Mostrar última visita
+  var ultVisitaEl = document.getElementById('ultimaVisitaDetalle');
+  if(ultVisitaEl){
+    var ultimaFecha = null;
+    c.historial.forEach(function(h){
+      if(h.tipo === 'compra' || h.tipo === 'no_compra'){
+        if(!ultimaFecha || (h.fechaISO || '') > ultimaFecha) ultimaFecha = h.fechaISO;
+      }
+    });
+    ultVisitaEl.textContent = ultimaFecha ? 'Última visita: ' + isoAFechaLabel(ultimaFecha) : 'Sin visitas registradas';
+  }
+
   renderDetalle(c);
   abrirModal('modalDetalle');
 }
 
 function renderDetalle(c){
   const saldoEl = document.getElementById('saldoDetalle');
-  saldoEl.textContent = '$' + c.saldo.toFixed(0);
+  saldoEl.textContent = $(c.saldo);
   saldoEl.className = tieneDeuda(c) ? 'deuda' : 'saldo-ok';
   document.getElementById('envasesDetalle').textContent = c.envasesPendientes;
 
@@ -1357,7 +1405,7 @@ function abrirStock(id){
   clienteStockId = id;
   const c = clientes.find(x=>x.id===id);
   document.getElementById('nombreStock').textContent = c.codigo + ' - ' + c.nombre;
-  document.getElementById('saldoActualStock').textContent = '$' + c.saldo.toFixed(0);
+  document.getElementById('saldoActualStock').textContent = '$' + formatMoney(c.saldo);
   document.getElementById('bidonesPoderStock').textContent = c.envasesPendientes;
   document.getElementById('stkB20').value = '';
   document.getElementById('stkB10').value = '';
@@ -1401,7 +1449,7 @@ function actualizarPreviewStock(){
   const b10 = parseInt(document.getElementById('stkB10').value) || 0;
   const disp = parseInt(document.getElementById('stkDisp').value) || 0;
   const total = b20*c.precio + b10*(c.precio10||0) + disp*(c.precioDisp||0);
-  document.getElementById('stkPreview').textContent = '$' + total.toFixed(0);
+  document.getElementById('stkPreview').textContent = $(total);
 }
 
 function confirmarStock(tipo){
@@ -1558,12 +1606,12 @@ function renderTransferenciasPendientes(){
     cont.innerHTML = pendientes.map(p=>{
       const esDeHoy = p.entry.fechaISO === hoy;
       const tel = (p.cliente.telefono || '').replace(/[^0-9]/g,'');
-      const mensaje = `Hola ${p.cliente.nombre}! Te recuerdo que quedó pendiente la transferencia de $${p.entry.costo.toFixed(0)} del bidón del ${isoAFechaLabel(p.entry.fechaISO)}. Cualquier cosa mandame el comprobante. ¡Gracias!`;
+      const mensaje = `Hola ${p.cliente.nombre}! Te recuerdo que quedó pendiente la transferencia de $${formatMoney(p.entry.costo)} del bidón del ${isoAFechaLabel(p.entry.fechaISO)}. Cualquier cosa mandame el comprobante. ¡Gracias!`;
       const linkWhatsApp = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}` : null;
       return `
         <div class="card" style="${esDeHoy ? '' : 'border:2px solid var(--rojo-deuda, #c0392b);'}">
           <h3>${p.cliente.codigo} - ${p.cliente.nombre} ${!esDeHoy ? '⚠️' : ''}</h3>
-          <div class="row"><span>Monto:</span><strong>$${p.entry.costo.toFixed(0)}</strong></div>
+          <div class="row"><span>Monto:</span><strong>$${formatMoney(p.entry.costo)}</strong></div>
           <div class="row"><span>Fecha del bidón:</span><span>${isoAFechaLabel(p.entry.fechaISO)} ${p.entry.hora||''}</span></div>
           <div class="btn-row" style="margin-top:8px;">
             <button class="btn verde chico" onclick="marcarTransferenciaRecibida('${p.cliente.id}','${p.entry.id}')">✅ Ya la recibí</button>
@@ -1637,19 +1685,19 @@ function abrirBoleta(clienteId, entryId){
   lineas.push('Cliente: ' + c.nombre);
   if(c.direccion) lineas.push('Dirección: ' + c.direccion);
   lineas.push('');
-  if(entry.b20) lineas.push(`Bidón 20 Lts: ${entry.b20} x $${c.precio} = $${(entry.b20*c.precio).toFixed(0)}`);
-  if(entry.b10) lineas.push(`Bidón 10-12 Lts: ${entry.b10} x $${(c.precio10||0)} = $${(entry.b10*(c.precio10||0)).toFixed(0)}`);
-  if(entry.disp) lineas.push(`Dispenser: ${entry.disp} x $${(c.precioDisp||0)} = $${(entry.disp*(c.precioDisp||0)).toFixed(0)}`);
+  if(entry.b20) lineas.push(`Bidón 20 Lts: ${entry.b20} x $${c.precio} = $${formatMoney(entry.b20*c.precio)}`);
+  if(entry.b10) lineas.push(`Bidón 10-12 Lts: ${entry.b10} x $${(c.precio10||0)} = $${formatMoney(entry.b10*(c.precio10||0))}`);
+  if(entry.disp) lineas.push(`Dispenser: ${entry.disp} x $${(c.precioDisp||0)} = $${formatMoney(entry.disp*(c.precioDisp||0))}`);
   if(entry.envases) lineas.push(`Envases vacíos devueltos: ${entry.envases}`);
   lineas.push('');
-  lineas.push('TOTAL: $' + entry.costo.toFixed(0));
+  lineas.push('TOTAL: $' + formatMoney(entry.costo));
   const formaPagoTexto = entry.formaPago==='efectivo' ? 'Efectivo'
     : entry.formaPago==='transferencia' ? 'Transferencia'
     : entry.formaPago==='transferencia_pendiente' ? 'Transferencia (pendiente de confirmar)'
     : 'Entregado parcial / fiado';
   lineas.push('Forma de pago: ' + formaPagoTexto);
   if(entry.montoPagado < entry.costo){
-    lineas.push('Saldo pendiente de esta compra: $' + (entry.costo - entry.montoPagado).toFixed(0));
+    lineas.push('Saldo pendiente de esta compra: $' + formatMoney(entry.costo - entry.montoPagado));
   }
   lineas.push('');
   lineas.push('¡Gracias por su compra! - LA NORIA');
@@ -1980,7 +2028,7 @@ function exportarExcel(){
         h.costo !== undefined ? h.costo.toFixed(0) : '',
         formaPagoLabel,
         h.montoPagado !== undefined ? h.montoPagado.toFixed(0) : '',
-        c.saldo.toFixed(0)
+        formatMoney(c.saldo)
       ]);
     });
   });
@@ -2073,7 +2121,7 @@ function tarjetaClienteBusqueda(c, i){
       <div onclick="abrirDetalle('${c.id}')">
         <h3>${i!=null ? (i+1)+'. ' : ''}${c.codigo} - ${escapeHtml(c.nombre)} ${visitado ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
         <div class="row"><span>${escapeHtml(c.direccion || 'Sin dirección')}</span></div>
-        <div class="row"><span>Deuda:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
+        <div class="row"><span>Deuda:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">${$(c.saldo)}</span></div>
         <div class="row"><span>Envases que debe:</span><span>${c.envasesPendientes}</span></div>
       </div>
       <div class="btn-row">
@@ -2095,7 +2143,7 @@ function ventaRapida(clienteId){
     return;
   }
   // Confirmar
-  if(!confirm('Registrar: 1 bidón 20L a ' + c.nombre + ' - $' + c.precio.toFixed(0) + ' (Efectivo)')) return;
+  if(!confirm('Registrar: 1 bidón 20L a ' + c.nombre + ' - $' + formatMoney(c.precio) + ' (Efectivo)')) return;
   
   const ahora = new Date();
   const entry = {
@@ -2132,7 +2180,7 @@ function tarjetaCliente(c, i, mostrarBotonesStock){
       <div onclick="abrirDetalle('${c.id}')">
         <h3>${i!=null ? (i+1)+'. ' : ''}${c.codigo} - ${escapeHtml(c.nombre)} ${visitado ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
         <div class="row"><span>${escapeHtml(c.direccion || 'Sin dirección')}</span></div>
-        <div class="row"><span>Deuda:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
+        <div class="row"><span>Deuda:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">${$(c.saldo)}</span></div>
         <div class="row"><span>Envases que debe:</span><span>${c.envasesPendientes}</span></div>
       </div>
       ${mostrarBotonesStock ? `
@@ -2204,7 +2252,7 @@ function renderPorVisitar(){
           <div onclick="abrirDetalle('${c.id}')">
             <h3>${(i+1)}. ${c.codigo} - ${escapeHtml(c.nombre)} ${visitadoHoy ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
             <div class="row"><span>${escapeHtml(c.direccion || 'Sin dirección')}</span></div>
-            <div class="row"><span>Deuda:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">$${c.saldo.toFixed(0)}</span></div>
+            <div class="row"><span>Deuda:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">${$(c.saldo)}</span></div>
             <div class="row"><span>Envases que debe:</span><span>${c.envasesPendientes}</span></div>
           </div>
           <div style="font-size:0.72em;color:#888;padding:0 12px 4px;">📅 ${diasTxt}</div>
@@ -2300,7 +2348,7 @@ function renderFueraDeReparto(){
           <div onclick="abrirDetalle('${c.id}')" style="flex:1; cursor:pointer;">
             <h3 style="margin:0 0 6px;">${c.codigo} - ${c.nombre}</h3>
             <div style="font-size:0.9em;">${c.direccion || ''}</div>
-            <div style="font-size:0.8em; color:#666; margin-top:4px;">Saldo: <strong>$${c.saldo.toFixed(0)}</strong></div>
+            <div style="font-size:0.8em; color:#666; margin-top:4px;">Saldo: <strong>$${formatMoney(c.saldo)}</strong></div>
           </div>
           <button class="btn chico naranja" onclick="agregarAFueraDeReparto('${c.id}')">➕ Agregar</button>
         </div>
@@ -2343,10 +2391,10 @@ function agregarParaVisitar(clienteId){
 // ---------- ESTADISTICAS ----------
 function renderEstadisticas(){
   const totalDia = clientes.filter(c=>c.dias.includes(diaSeleccionado)).length;
-  document.getElementById('estVenta').textContent = '$' + ventaHoy.toFixed(0);
-  document.getElementById('estEfectivo').textContent = '$' + efectivoHoy.toFixed(0);
-  document.getElementById('estTransferencia').textContent = '$' + transferenciaHoy.toFixed(0);
-  document.getElementById('estDeuda').textContent = '$' + deudaGeneradaHoy.toFixed(0);
+  document.getElementById('estVenta').textContent = $(ventaHoy);
+  document.getElementById('estEfectivo').textContent = $(efectivoHoy);
+  document.getElementById('estTransferencia').textContent = $(transferenciaHoy);
+  document.getElementById('estDeuda').textContent = $(deudaGeneradaHoy);
   document.getElementById('estVisitados').textContent = visitasHoy.size + '/' + totalDia;
   document.getElementById('estEntregados').textContent = envasesEntregadosHoy;
   document.getElementById('estRecibidos').textContent = envasesRecibidosHoy;
@@ -2437,20 +2485,20 @@ function renderReporteSemanal(){
     totB20+=(r.b20Vendidos||0); totB10+=(r.b10Vendidos||0); totDisp+=(r.dispVendidos||0);
     return `<div class="card">
       <h3>${nombreDia} ${isoAFechaLabel(iso)}</h3>
-      <div class="row"><span>Venta:</span><strong>$${r.venta.toFixed(0)}</strong></div>
-      <div class="row"><span>Efectivo:</span><span>$${r.efectivo.toFixed(0)}</span></div>
-      <div class="row"><span>Transferencia:</span><span>$${r.transferencia.toFixed(0)}</span></div>
-      <div class="row"><span>Fiado:</span><span class="deuda">$${r.deuda.toFixed(0)}</span></div>
+      <div class="row"><span>Venta:</span><strong>$${$(r.venta)}</strong></div>
+      <div class="row"><span>Efectivo:</span><span>$${$(r.efectivo)}</span></div>
+      <div class="row"><span>Transferencia:</span><span>$${$(r.transferencia)}</span></div>
+      <div class="row"><span>Fiado:</span><span class="deuda">$${$(r.deuda)}</span></div>
       <div class="row"><span>Vendidos 20L / 10-12L / Disp:</span><span>${r.b20Vendidos||0} / ${r.b10Vendidos||0} / ${r.dispVendidos||0}</span></div>
       <div class="row"><span>Sobraron 20L / 10-12L / Disp:</span><span>${r.b20Sobrante||0} / ${r.b10Sobrante||0} / ${r.dispSobrante||0}</span></div>
       <div class="row"><span>Visitas:</span><span>${r.visitas}</span></div>
     </div>`;
   }).join('');
 
-  document.getElementById('semVenta').textContent = '$' + totVenta.toFixed(0);
-  document.getElementById('semEfectivo').textContent = '$' + totEfectivo.toFixed(0);
-  document.getElementById('semTransferencia').textContent = '$' + totTransferencia.toFixed(0);
-  document.getElementById('semDeuda').textContent = '$' + totDeuda.toFixed(0);
+  document.getElementById('semVenta').textContent = $(totVenta);
+  document.getElementById('semEfectivo').textContent = $(totEfectivo);
+  document.getElementById('semTransferencia').textContent = $(totTransferencia);
+  document.getElementById('semDeuda').textContent = $(totDeuda);
   document.getElementById('semEntregados').textContent = totEntregados;
   document.getElementById('semRecibidos').textContent = totRecibidos;
   document.getElementById('semB20').textContent = totB20;
@@ -2461,8 +2509,8 @@ function renderReporteSemanal(){
 // ---------- FOOTER DE ESTADISTICAS RAPIDAS ----------
 function renderFooter(){
   const totalDia = clientes.filter(c=>c.dias.includes(diaSeleccionado)).length;
-  document.getElementById('statVendido').textContent = '$' + ventaHoy.toFixed(0);
-  document.getElementById('statCobrado').textContent = '$' + cobradoHoy.toFixed(0);
+  document.getElementById('statVendido').textContent = $(ventaHoy);
+  document.getElementById('statCobrado').textContent = $(cobradoHoy);
   document.getElementById('statVisitas').textContent = visitasHoy.size + '/' + totalDia;
 }
 
@@ -2476,6 +2524,7 @@ function renderTodo(){
   renderSelectorDiaVista();
   actualizarFechaHoyLabel();
   actualizarBannerTransferencias();
+  actualizarDeudaTotal();
   if(document.getElementById('view-estadisticas').classList.contains('active')) renderEstadisticas();
   if(document.getElementById('view-stockCamion').classList.contains('active')) renderStockCamion();
   guardarEstado();
@@ -2526,6 +2575,55 @@ window.addEventListener('appinstalled', function(){
 });
 
 // ---------- INICIALIZACION (recién después de iniciar sesión) ----------
+// ---------- PULL TO REFRESH ----------
+var ptrStartY = 0;
+var ptrPulling = false;
+var ptrThreshold = 70;
+
+document.addEventListener('touchstart', function(e){
+  if(window.scrollY <= 0 && e.touches.length === 1){
+    ptrStartY = e.touches[0].clientY;
+    ptrPulling = true;
+  } else {
+    ptrPulling = false;
+  }
+}, { passive: true });
+
+document.addEventListener('touchmove', function(e){
+  if(!ptrPulling) return;
+  var pull = e.touches[0].clientY - ptrStartY;
+  if(pull > 10 && pull < 150){
+    var indicator = document.getElementById('ptrIndicator');
+    if(!indicator){
+      indicator = document.createElement('div');
+      indicator.id = 'ptrIndicator';
+      indicator.style.cssText = 'position:fixed; top:0; left:50%; transform:translateX(-50%); z-index:9999; padding:8px 16px; font-size:0.85em; color:#999; transition:opacity 0.2s; pointer-events:none;';
+      document.body.appendChild(indicator);
+    }
+    indicator.style.display = 'block';
+    indicator.textContent = pull > ptrThreshold ? '\ud83d\udd04 Soltar para actualizar' : 'Desliza para actualizar...';
+    indicator.style.opacity = Math.min(pull / ptrThreshold, 1);
+  }
+}, { passive: true });
+
+document.addEventListener('touchend', function(e){
+  var indicator = document.getElementById('ptrIndicator');
+  if(ptrPulling && indicator && indicator.style.display === 'block'){
+    var pull = (e.changedTouches[0] || {}).clientY - ptrStartY;
+    if(pull > ptrThreshold){
+      indicator.textContent = 'Actualizando...';
+      renderTodo();
+      if('vibrate' in navigator) navigator.vibrate(30);
+      setTimeout(function(){
+        indicator.style.display = 'none';
+      }, 500);
+    } else {
+      indicator.style.display = 'none';
+    }
+  }
+  ptrPulling = false;
+}, { passive: true });
+
 function inicializarAppLuegoDeLogin(){
   cargarEstado();
   renderFiltroTabs();

@@ -165,6 +165,7 @@
   <div style="text-align:center; font-size:0.78em; opacity:0.85;" id="fechaHoyLabel"></div>
   <div id="indicadorSinConexion" style="display:none; text-align:center; background:#c0392b; color:white; font-size:0.75em; padding:3px;">📴 Sin conexión — trabajando offline, se guarda todo igual</div>
   <div style="text-align:center; font-size:0.72em; opacity:0.75;" id="nombreMarcaMostrado"></div>
+  <div style="text-align:center; margin:4px 0;"><span id="deudaTotalBadge" style="display:none; background:#c0392b; color:white; font-size:0.72em; padding:3px 10px; border-radius:12px; font-weight:600;"></span></div>
   <div class="topbar">
     <button class="icon-btn" onclick="toggleMenu()" aria-label="Abrir menú" title="Abrir menú">
       <span>☰</span>
@@ -518,6 +519,7 @@
     <div class="row"><span>Envases que debe:</span><strong id="envasesDetalle">0</strong></div>
     <div class="row"><span>Días de reparto:</span><strong id="diasDetalle">-</strong></div>
     <div class="btn-row" id="botonesContacto"></div>
+  <div style="font-size:0.75em; color:#888; margin-top:4px;" id="ultimaVisitaDetalle"></div>
     <div id="botonesMaps" style="margin-top:6px;"></div>
     <button class="btn outline" onclick="abrirEditarCliente()">✏️ Editar datos del cliente</button>
     <hr>
