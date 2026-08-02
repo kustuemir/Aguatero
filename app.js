@@ -775,6 +775,70 @@ function togglePanel(id){
   }
 }
 
+// ---------- RECORDATORIO DE CLIENTES INACTIVOS ----------
+function mostrarClientesInactivos(){
+  cerrarMenus();
+  var diasSinVisita = 14; // 2 semanas sin visita
+  var ahora = new Date();
+  var inactivos = [];
+
+  clientes.forEach(function(c){
+    if(c.historial.length === 0){
+      inactivos.push({ cliente: c, dias: -1, ultimaVisita: null });
+      return;
+    }
+    var ultimaFecha = null;
+    c.historial.forEach(function(h){
+      if(h.tipo === 'compra' || h.tipo === 'no_compra'){
+        if(!ultimaFecha || (h.fechaISO || '') > ultimaFecha) ultimaFecha = h.fechaISO;
+      }
+    });
+    if(!ultimaFecha){
+      inactivos.push({ cliente: c, dias: -1, ultimaVisita: null });
+      return;
+    }
+    var dias = Math.floor((ahora - new Date(ultimaFecha + 'T00:00:00')) / 86400000);
+    if(dias >= diasSinVisita){
+      inactivos.push({ cliente: c, dias: dias, ultimaVisita: ultimaFecha });
+    }
+  });
+
+  inactivos.sort(function(a, b){ return b.dias - a.dias; });
+
+  var cont = document.getElementById('listaClientesInactivos');
+  if(!cont) return;
+
+  if(inactivos.length === 0){
+    cont.innerHTML = '<div class="empty-msg">\u2705 Todos tus clientes fueron visitados en las \u00faltimas 2 semanas</div>';
+  } else {
+    cont.innerHTML = '<div style="padding:8px 0; font-size:0.85em; color:#666;">' + inactivos.length + ' clientes sin visita en m\u00e1s de ' + diasSinVisita + ' d\u00edas:</div>' +
+      inactivos.map(function(item){
+        var c = item.cliente;
+        var diasTxt = item.dias === -1 ? 'Nunca visitado' : 'Hace ' + item.dias + ' d\u00edas';
+        var tel = (c.telefono || '').replace(/[^0-9]/g, '');
+        var botonTel = tel
+          ? '<a class="btn chico" style="text-decoration:none; text-align:center;" href="https://wa.me/' + tel + '">\ud83d\udcac WhatsApp</a>'
+          : '';
+        var botonMaps = c.direccion
+          ? '<a class="btn chico outline" style="text-decoration:none; text-align:center;" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(c.direccion) + '" target="_blank">\ud83d\udccd C\u00f3mo llegar</a>'
+          : '';
+        return '<div class="card tiene-deuda">' +
+          '<div onclick="abrirDetalle(\'' + c.id + '\')" style="cursor:pointer;">' +
+          '<h3>' + c.codigo + ' - ' + escapeHtml(c.nombre) + '</h3>' +
+          '<div class="row"><span>\u00daltima visita:</span><span style="color:#c0392b; font-weight:600;">' + diasTxt + '</span></div>' +
+          '<div class="row"><span>Deuda:</span><span class="deuda">$' + formatMoney(c.saldo) + '</span></div>' +
+          '<div class="row"><span>Envases que debe:</span><span>' + c.envasesPendientes + '</span></div>' +
+          (c.nota ? '<div style="font-size:0.78em; color:#e08a3e; padding:2px 0;">\ud83d\udcdd ' + escapeHtml(c.nota) + '</div>' : '') +
+          '</div>' +
+          '<div class="btn-row">' + botonTel + botonMaps + '</div>' +
+          '</div>';
+      }).join('');
+  }
+
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.getElementById('view-clientesInactivos').classList.add('active');
+}
+
 // ---------- COMPARTIR RESUMEN POR WHATSAPP ----------
 function compartirResumenDia(){
   var lineas = [];
@@ -1400,6 +1464,7 @@ function renderDetalle(c){
           <span>${h.hora || '-'}</span>
           <span style="display:flex; gap:4px; margin-top:2px;">
             ${(h.id && h.tipo === 'compra') ? `<button class="btn chico outline" style="padding:2px 8px;" onclick="abrirBoleta('${c.id}','${h.id}')">🧾</button>` : ''}
+            ${(h.id && h.tipo === 'compra') ? `<button class="btn chico outline" style="padding:2px 8px;" onclick="compartirBoleta('${c.id}','${h.id}')">📲</button>` : ''}
             ${(h.id && h.tipo !== 'pago') ? `<button class="btn chico outline" style="padding:2px 8px;" onclick="abrirEditarMovimiento('${c.id}','${h.id}')">✏️</button>` : ''}
           </span>
         </span>
@@ -1694,6 +1759,42 @@ function revertirEfectoMovimiento(c, entry){
   } else if(entry.tipo === 'pago'){
     if(entry.fechaISO === todayISO()) cobradoHoy -= entry.montoPagado;
   }
+}
+
+// ---------- COMPARTIR BOLETA POR WHATSAPP ----------
+function compartirBoleta(clienteId, entryId){
+  var c = clientes.find(function(x){ return x.id === clienteId; });
+  if(!c) return;
+  var entry = c.historial.find(function(h){ return h.id === entryId; });
+  if(!entry || entry.tipo !== 'compra') return;
+
+  var lineas = [];
+  lineas.push('\ud83d\udce8 COMPROBANTE - ' + (usuarioActual.nombreMarca || 'Aguatero'));
+  lineas.push('Cliente: ' + c.nombre);
+  lineas.push('Fecha: ' + isoAFechaLabel(entry.fechaISO) + ' ' + (entry.hora || ''));
+  lineas.push('');
+  if(entry.b20) lineas.push('Bid\u00f3n 20 Lts: ' + entry.b20 + ' x $' + formatMoney(c.precio) + ' = $' + formatMoney(entry.b20 * c.precio));
+  if(entry.b10) lineas.push('Bid\u00f3n 10-12 Lts: ' + entry.b10 + ' x $' + formatMoney(c.precio10 || 0) + ' = $' + formatMoney(entry.b10 * (c.precio10 || 0)));
+  if(entry.disp) lineas.push('Dispenser: ' + entry.disp + ' x $' + formatMoney(c.precioDisp || 0) + ' = $' + formatMoney(entry.disp * (c.precioDisp || 0)));
+  if(entry.envases) lineas.push('Envases devueltos: ' + entry.envases);
+  lineas.push('');
+  lineas.push('TOTAL: $' + formatMoney(entry.costo));
+  if(entry.montoPagado < entry.costo){
+    lineas.push('Pagado: $' + formatMoney(entry.montoPagado));
+    lineas.push('Saldo pendiente: $' + formatMoney(entry.costo - entry.montoPagado));
+  } else {
+    lineas.push('Pagado: $' + formatMoney(entry.montoPagado) + ' (completo)');
+  }
+  lineas.push('');
+  lineas.push('Saldo total del cliente: $' + formatMoney(c.saldo));
+  lineas.push('Envases que debe: ' + c.envasesPendientes);
+
+  var texto = lineas.join('\n');
+  var tel = (c.telefono || '').replace(/[^0-9]/g, '');
+  var url = tel
+    ? 'https://wa.me/' + tel + '?text=' + encodeURIComponent(texto)
+    : 'https://wa.me/?text=' + encodeURIComponent(texto);
+  window.open(url, '_blank');
 }
 
 // ---------- BOLETA / COMPROBANTE ----------
@@ -2199,7 +2300,7 @@ function ventaRapida(clienteId){
     tipo: 'compra',
     fechaISO: todayISO(),
     hora: ahora.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
-    b20: 1, b10: 0, disp: 0, bidones: 1, envases: 0,
+    b20: 1, b10: 0, disp: 0, bidones: 1, envases: 1,
     costo: c.precio,
     formaPago: 'efectivo',
     montoPagado: c.precio
@@ -2642,6 +2743,78 @@ window.addEventListener('appinstalled', function(){
 });
 
 // ---------- INICIALIZACION (recién después de iniciar sesión) ----------
+// ---------- CREAR REPARTIDOR (registro de nuevo usuario) ----------
+async function abrirCrearRepartidor(){
+  cerrarMenus();
+  abrirModal('modalCrearRepartidor');
+}
+
+async function crearRepartidor(){
+  var email = document.getElementById('inputRepartidorEmail').value.trim();
+  var password = document.getElementById('inputRepartidorPassword').value;
+  var nombreRepartidor = document.getElementById('inputRepartidorNombre').value.trim();
+
+  if(!email || !password){
+    mostrarToast('Complet\u00e1 email y contrase\u00f1a', 'error');
+    return;
+  }
+  if(password.length < 6){
+    mostrarToast('La contrase\u00f1a debe tener al menos 6 caracteres', 'error');
+    return;
+  }
+
+  var btn = document.getElementById('btnCrearRepartidor');
+  btn.disabled = true;
+  btn.textContent = 'Creando...';
+
+  try{
+    // Cerrar sesion actual temporalmente para crear el nuevo usuario
+    var sessionActual = await sb.auth.getSession();
+    await sb.auth.signOut();
+
+    var { data, error } = await sb.auth.signUp({
+      email: email,
+      password: password,
+      options: { data: { nombre_marca: nombreRepartidor || 'Repartidor' } }
+    });
+
+    if(error){
+      mostrarToast(error.message || 'No se pudo crear el usuario', 'error');
+      // Re-login del admin
+      if(sessionActual.data && sessionActual.data.session){
+        await sb.auth.signInWithPassword({
+          email: sessionActual.data.session.user.email,
+          password: prompt('Re-ingres\u00e1 tu contrase\u00f1a para volver a entrar:')
+        });
+      }
+      return;
+    }
+
+    mostrarToast('Repartidor creado: ' + email, 'success');
+
+    // Re-login del admin
+    if(sessionActual.data && sessionActual.data.session){
+      var adminEmail = sessionActual.data.session.user.email;
+      var adminPass = prompt('Ingres\u00e1 tu contrase\u00f1a para volver a tu cuenta:');
+      if(adminPass){
+        await sb.auth.signInWithPassword({ email: adminEmail, password: adminPass });
+        mostrarToast('Volviste a tu cuenta', 'success');
+      }
+    }
+
+    cerrarModal('modalCrearRepartidor');
+    // Limpiar campos
+    document.getElementById('inputRepartidorEmail').value = '';
+    document.getElementById('inputRepartidorPassword').value = '';
+    document.getElementById('inputRepartidorNombre').value = '';
+  }catch(e){
+    mostrarToast('Error: ' + (e.message || 'no se pudo crear'), 'error');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Crear repartidor';
+  }
+}
+
 // ---------- PULL TO REFRESH ----------
 var ptrStartY = 0;
 var ptrPulling = false;

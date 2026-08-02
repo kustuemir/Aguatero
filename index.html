@@ -202,11 +202,13 @@
     <button onclick="mostrarStockCamion()">🚚 Stock del camión</button>
     <button onclick="mostrarTransferenciasPendientes()">🕒 Transferencias pendientes</button>
     <button onclick="mostrarReporteSemanal()">📈 Reporte semanal</button>
+    <button onclick="mostrarClientesInactivos()">🔔 Clientes inactivos</button>
     <div style="padding:8px 16px; font-size:0.7em; text-transform:uppercase; opacity:0.5; letter-spacing:1px;">Configuración y respaldo</div>
     <button onclick="exportarRespaldo()">💾 Descargar respaldo</button>
     <button onclick="compartirRespaldo()">📤 Enviar respaldo (Drive / Email / WhatsApp)</button>
     <button onclick="exportarExcel()">📊 Exportar movimientos a Excel</button>
     <button onclick="document.getElementById('inputRestaurar').click()">📂 Restaurar respaldo</button>
+    <button onclick="abrirCrearRepartidor()">👤 Crear repartidor</button>
     <button onclick="abrirAumentoMasivo()">💲 Aumento masivo de precios</button>
     <button onclick="document.getElementById('inputNombreMarca').value = usuarioActual.nombreMarca || ''; abrirModal('modalNombreMarca'); cerrarMenus();">✏️ Cambiar nombre / marca</button>
     <button onclick="abrirModal('modalTerminos'); cerrarMenus();">📄 Términos y Privacidad</button>
@@ -671,6 +673,34 @@
 </div>
 
 <script src="app.js"></script>
+<!-- VISTA CLIENTES INACTIVOS -->
+<div class="view" id="view-clientesInactivos">
+  <button class="btn outline" onclick="document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById('view-main').classList.add('active');">← Volver</button>
+  <h2 style="text-align:center;">🔔 Clientes inactivos</h2>
+  <div id="listaClientesInactivos"></div>
+</div>
+
+<!-- MODAL CREAR REPARTIDOR -->
+<div class="modal-bg" id="modalCrearRepartidor">
+  <div class="modal">
+    <button class="close-x" onclick="cerrarModal('modalCrearRepartidor')">×</button>
+    <h2>👤 Crear repartidor</h2>
+    <p style="font-size:0.85em; color:#666; margin-bottom:12px;">Creá un usuario nuevo para que otro repartidor use la app. Se le va a pedir confirmar el email.</p>
+
+    <label>Nombre del repartidor (opcional)</label>
+    <input type="text" id="inputRepartidorNombre" placeholder="Ej: Carlos">
+
+    <label>Email</label>
+    <input type="email" id="inputRepartidorEmail" placeholder="repartidor@email.com">
+
+    <label>Contraseña</label>
+    <input type="text" id="inputRepartidorPassword" placeholder="Mínimo 6 caracteres">
+
+    <button class="btn naranja" style="width:100%; margin-top:12px;" id="btnCrearRepartidor" onclick="crearRepartidor()">Crear repartidor</button>
+    <p style="font-size:0.78em; color:#999; margin-top:8px;">El repartidor va a recibir un email para confirmar su cuenta. Pasale el email y contraseña que cargaste acá.</p>
+  </div>
+</div>
+
 <!-- MODAL AUMENTO MASIVO DE PRECIOS -->
 <div class="modal-bg" id="modalAumentoMasivo">
   <div class="modal">
