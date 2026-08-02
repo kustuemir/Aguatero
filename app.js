@@ -1194,6 +1194,7 @@ function guardarCliente(){
   if(!nombre){ alert('Poné un nombre para el cliente'); return; }
   if(dias.length === 0){ alert('Elegí al menos un día de reparto'); return; }
 
+  var nota = document.getElementById('inputNota').value.trim();
   let cliente;
   let esNuevo = !clienteSeleccionado;
   if(clienteSeleccionado){
@@ -1201,7 +1202,7 @@ function guardarCliente(){
     cliente.nombre = nombre; cliente.telefono = telefono;
     cliente.direccion = direccion; cliente.precio = precio;
     cliente.precio10 = precio10; cliente.precioDisp = precioDisp;
-    cliente.dias = dias;
+    cliente.nota = nota; cliente.dias = dias;
     // Quitar orden de los días que ya no están seleccionados
     Object.keys(cliente.ordenPorDia).forEach(dia=>{
       if(!dias.includes(dia)) delete cliente.ordenPorDia[dia];
@@ -1209,7 +1210,7 @@ function guardarCliente(){
   } else {
     contadorClientes++;
     cliente = {
-      id: generarId(), codigo: contadorClientes, nombre, telefono, direccion, precio, precio10, precioDisp, dias,
+      id: generarId(), codigo: contadorClientes, nombre, telefono, direccion, precio, precio10, precioDisp, nota, dias,
       saldo: 0, envasesPendientes: 0, historial: [], ordenPorDia: {}
     };
     clientes.push(cliente);
@@ -1239,6 +1240,8 @@ function abrirEditarCliente(){
   document.getElementById('inputDireccion').value = c.direccion || '';
   document.getElementById('inputPrecio').value = c.precio;
   document.getElementById('inputPrecio10').value = (c.precio10 !== undefined) ? c.precio10 : 3000;
+  var notaEl = document.getElementById('inputNota');
+  if(notaEl) notaEl.value = c.nota || '';
   document.getElementById('inputPrecioDisp').value = (c.precioDisp !== undefined) ? c.precioDisp : 8000;
   renderDiasSelector('diasClienteSelector', c.dias);
   renderSelectDespuesDe();
@@ -1362,6 +1365,17 @@ function abrirDetalle(id){
       }
     });
     ultVisitaEl.textContent = ultimaFecha ? 'Última visita: ' + isoAFechaLabel(ultimaFecha) : 'Sin visitas registradas';
+  }
+
+  // Mostrar nota del cliente
+  var notaEl = document.getElementById('notaCliente');
+  if(notaEl){
+    if(c.nota){
+      notaEl.style.display = 'block';
+      notaEl.textContent = '📝 ' + c.nota;
+    } else {
+      notaEl.style.display = 'none';
+    }
   }
 
   renderDetalle(c);
@@ -1503,6 +1517,15 @@ function confirmarStock(tipo){
 
   cerrarModal('modalStock');
   renderTodo();
+}
+
+// Marcar "no compró" directo desde la tarjeta (sin abrir detalle)
+function marcarNoCompraRapido(clienteId){
+  var c = clientes.find(function(x){ return x.id === clienteId; });
+  if(!c) return;
+  if(!confirm(c.nombre + ' - ¿Marcar como "no compró"?')) return;
+  clienteStockId = clienteId;
+  marcarNoCompra();
 }
 
 function marcarNoCompra(){
@@ -1959,10 +1982,34 @@ function mostrarStockCamion(){
 }
 
 function renderStockCamion(){
-  document.getElementById('stockB20').textContent = stockCamion.b20;
-  document.getElementById('stockB10').textContent = stockCamion.b10;
-  document.getElementById('stockDisp').textContent = stockCamion.disp;
+  var elB20 = document.getElementById('stockB20');
+  var elB10 = document.getElementById('stockB10');
+  var elDisp = document.getElementById('stockDisp');
+  if(elB20) elB20.textContent = stockCamion.b20;
+  if(elB10) elB10.textContent = stockCamion.b10;
+  if(elDisp) elDisp.textContent = stockCamion.disp;
   document.getElementById('stockEnvasesVaciosHoy').textContent = envasesRecibidosHoy;
+
+  // Alerta visual si el stock baja de 5
+  var umbral = 5;
+  if(elB20) elB20.style.color = stockCamion.b20 <= umbral ? '#c0392b' : '';
+  if(elB10) elB10.style.color = stockCamion.b10 <= umbral ? '#c0392b' : '';
+  if(elDisp) elDisp.style.color = stockCamion.disp <= umbral ? '#c0392b' : '';
+
+  // Banner de stock bajo
+  var banner = document.getElementById('stockBajoAlerta');
+  if(banner){
+    var bajos = [];
+    if(stockCamion.b20 <= umbral) bajos.push(stockCamion.b20 + ' bidones 20L');
+    if(stockCamion.b10 <= umbral) bajos.push(stockCamion.b10 + ' bidones 10L');
+    if(stockCamion.disp <= umbral) bajos.push(stockCamion.disp + ' dispensers');
+    if(bajos.length > 0 && (stockCamion.b20 > 0 || stockCamion.b10 > 0 || stockCamion.disp > 0)){
+      banner.style.display = 'block';
+      banner.textContent = '⚠️ Stock bajo: ' + bajos.join(', ');
+    } else {
+      banner.style.display = 'none';
+    }
+  }
 }
 
 function sumarStock(tipo){
@@ -2123,6 +2170,7 @@ function tarjetaClienteBusqueda(c, i){
         <div class="row"><span>${escapeHtml(c.direccion || 'Sin dirección')}</span></div>
         <div class="row"><span>Deuda:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">${$(c.saldo)}</span></div>
         <div class="row"><span>Envases que debe:</span><span>${c.envasesPendientes}</span></div>
+        ${c.nota ? '<div style="font-size:0.78em; color:#e08a3e; padding:2px 0;">📝 ' + escapeHtml(c.nota) + '</div>' : ''}
       </div>
       <div class="btn-row">
         <button class="btn chico" onclick="abrirStock('${c.id}')">📦 Stock</button>
@@ -2182,11 +2230,12 @@ function tarjetaCliente(c, i, mostrarBotonesStock){
         <div class="row"><span>${escapeHtml(c.direccion || 'Sin dirección')}</span></div>
         <div class="row"><span>Deuda:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">${$(c.saldo)}</span></div>
         <div class="row"><span>Envases que debe:</span><span>${c.envasesPendientes}</span></div>
+        ${c.nota ? '<div style="font-size:0.78em; color:#e08a3e; padding:2px 0;">📝 ' + escapeHtml(c.nota) + '</div>' : ''}
       </div>
       ${mostrarBotonesStock ? `
       <div class="btn-row">
         <button class="btn chico" onclick="abrirStock('${c.id}')">📦 Stock</button>
-        <button class="btn chico outline" onclick="clienteStockId='${c.id}'; marcarNoCompra()">No compra</button>
+        <button class="btn chico outline" onclick="marcarNoCompraRapido('${c.id}')">🚫 No compra</button>
         <button class="btn chico verde" style="white-space:nowrap;" onclick="ventaRapida('${c.id}')">⚡ 1x20L$</button>
       </div>` : ''}
       ${c.direccion ? `<a class="btn chico outline" style="text-decoration:none; text-align:center; margin-top:4px; display:block;" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.direccion)}" target="_blank" rel="noopener">📍 Cómo llegar</a>` : ''}
@@ -2414,6 +2463,24 @@ function renderEstadisticas(){
 }
 
 // ---------- CERRAR REPARTO DEL DIA ----------
+function confirmarCerrarReparto(){
+  var resumen = 'CERRAR REPARTO DEL DÍA\n\n';
+  resumen += 'Visitaste: ' + visitasHoy.size + ' clientes\n';
+  resumen += 'Vendido: $' + formatMoney(ventaHoy) + '\n';
+  resumen += 'Cobrado: $' + formatMoney(cobradoHoy) + '\n';
+  resumen += '  • Efectivo: $' + formatMoney(efectivoHoy) + '\n';
+  resumen += '  • Transferencia: $' + formatMoney(transferenciaHoy) + '\n';
+  resumen += 'Deuda generada: $' + formatMoney(deudaGeneradaHoy) + '\n\n';
+  resumen += 'Bidones 20L: ' + b20VendidosHoy + '\n';
+  resumen += 'Bidones 10-12L: ' + b10VendidosHoy + '\n';
+  resumen += 'Dispensers: ' + dispVendidosHoy + '\n';
+  resumen += 'Sobrante en camión: ' + stockCamion.b20 + ' / ' + stockCamion.b10 + ' / ' + stockCamion.disp + '\n\n';
+  resumen += '¿Confirmás que querés cerrar el reparto?\nSe descarga un respaldo y el stock vuelve a cero.';
+
+  if(!confirm(resumen)) return;
+  cerrarRepartoDelDia();
+}
+
 function cerrarRepartoDelDia(){
   const fecha = todayISO();
   resumenesDiarios[fecha] = {
@@ -2451,7 +2518,7 @@ function cerrarRepartoDelDia(){
   guardarEstado();
   renderEstadisticas();
   renderTodo();
-  alert('Reparto del día cerrado ✅\n\nSe guardó en el reporte semanal y se descargó un respaldo del día.\nEl resumen y el stock del camión ya quedaron en cero, listos para el próximo reparto.');
+  mostrarToast('Reparto cerrado - respaldo descargado', 'success');
 }
 
 // ---------- REPORTE SEMANAL ----------

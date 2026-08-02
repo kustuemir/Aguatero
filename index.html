@@ -275,7 +275,7 @@
     <div class="stat-box" style="background:#8f6b0b;"><span class="num" id="estDisp">0</span>Vendidos Dispenser</div>
   </div>
   <button class="btn verde" style="width:100%;" onclick="compartirResumenDia()">📤 Compartir resumen por WhatsApp</button>
-  <button class="btn naranja" onclick="cerrarRepartoDelDia()">🔒 Cerrar reparto del día</button>
+  <button class="btn naranja" onclick="confirmarCerrarReparto()">🔒 Cerrar reparto del día</button>
   <p style="font-size:0.78em; color:#666;" id="estadoCierreHoy"></p>
   <button class="btn outline" onclick="mostrarReporteSemanal()">📈 Ver reporte semanal</button>
 </div>
@@ -338,6 +338,7 @@
 
 <!-- STOCK DEL CAMION -->
 <div class="view" id="view-stockCamion">
+  <div id="stockBajoAlerta" style="display:none; background:#fff3cd; border:1px solid #ffc107; color:#856404; padding:8px 12px; border-radius:8px; margin:8px 0; font-size:0.85em; font-weight:600;"></div>
   <button class="btn outline" onclick="volverDeEstadisticas()">← Volver</button>
   <h2 style="text-align:center;">Stock del camión</h2>
 
@@ -440,6 +441,8 @@
     <input type="number" inputmode="numeric" id="inputPrecio10" placeholder="Ej: 3000">
     <label>Precio Dispenser ($)</label>
     <input type="number" inputmode="numeric" id="inputPrecioDisp" placeholder="Ej: 8000">
+    <label>Nota del cliente (opcional)</label>
+    <input type="text" id="inputNota" placeholder="Ej: Dejar en puerta, timbre 2B, sin bidón azul..." maxlength="100">
     <label>Frecuencia de visita (días)</label>
     <div class="dia-selector" id="diasClienteSelector"></div>
 
@@ -519,6 +522,7 @@
     <div class="row"><span>Envases que debe:</span><strong id="envasesDetalle">0</strong></div>
     <div class="row"><span>Días de reparto:</span><strong id="diasDetalle">-</strong></div>
     <div class="btn-row" id="botonesContacto"></div>
+  <div style="font-size:0.8em; color:#e08a3e; margin-top:6px; font-weight:600;" id="notaCliente"></div>
   <div style="font-size:0.75em; color:#888; margin-top:4px;" id="ultimaVisitaDetalle"></div>
     <div id="botonesMaps" style="margin-top:6px;"></div>
     <button class="btn outline" onclick="abrirEditarCliente()">✏️ Editar datos del cliente</button>
