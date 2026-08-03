@@ -419,30 +419,14 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
 }
 
 /* Help bot */
-.help-bubble {
-  position: fixed;
-  bottom: 90px;
-  left: 20px;
-  right: auto;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--azul-medio);
-  color: white;
-  font-size: 1.4em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 60;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  border: 2px solid white;
-}
+
 .help-panel {
   position: fixed;
-  bottom: 145px;
-  left: 20px;
-  right: auto;
-  width: calc(100% - 40px);
+  top: 70px;
+  right: 10px;
+  left: auto;
+  bottom: auto;
+  width: calc(100% - 20px);
   max-width: 360px;
   max-height: 400px;
   background: var(--tarjeta-fondo);
@@ -539,10 +523,7 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
 
 /* FIX: Botones táctiles más grandes (44px mínimo) */
 .topbar button, .footer-stats button, .card button, .btn-chico,
-.btn.chico, .fab, .help-bubble {
-  min-height: 44px;
-  min-width: 44px;
-}
+.btn.chico, .fab, 
 
 /* FIX: Safe areas iPhone/Android */
 .topbar {
@@ -551,10 +532,7 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
 .footer-stats {
   padding-bottom: max(8px, env(safe-area-inset-bottom));
 }
-.help-bubble {
-  bottom: calc(90px + env(safe-area-inset-bottom));
-  left: calc(20px + env(safe-area-inset-left));
-}
+
 
 /* FIX: Stepper no colapsa en pantallas chicas */
 @media (max-width: 360px) {
