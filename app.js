@@ -544,6 +544,27 @@ function todayISO(){
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
+var fechaInicioTrabajo = null;
+
+function checkResetDia(){
+  var hoy = todayISO();
+  if(fechaInicioTrabajo && fechaInicioTrabajo !== hoy){
+    var hora = new Date().getHours();
+    if(hora >= 4){
+      ventaHoy = 0; efectivoHoy = 0; transferenciaHoy = 0;
+      deudaGeneradaHoy = 0; envasesEntregadosHoy = 0; envasesRecibidosHoy = 0;
+      b20VendidosHoy = 0; b10VendidosHoy = 0; dispVendidosHoy = 0;
+      visitasHoy.clear();
+      fechaInicioTrabajo = hoy;
+      guardarEstado();
+      renderTodo();
+      mostrarToast('Nuevo día - contadores reiniciados', 'info');
+    }
+  } else if(!fechaInicioTrabajo){
+    fechaInicioTrabajo = hoy;
+  }
+}
+
 
 function isoAFechaLabel(iso){
   if(!iso || typeof iso !== 'string' || iso.indexOf('-') === -1) return '-';
@@ -1231,6 +1252,13 @@ function abrirModalNuevoCliente(){
 document.getElementById('btnAgregar').addEventListener('click', abrirModalNuevoCliente);
 document.getElementById('btnAgregarTop').addEventListener('click', abrirModalNuevoCliente);
 
+// FIX: Cerrar modal al tocar afuera
+document.addEventListener('click', function(e){
+  if(e.target.classList && e.target.classList.contains('modal-bg')){
+    cerrarModal(e.target.id);
+  }
+});
+
 function abrirModal(id){ document.getElementById(id).classList.add('active'); }
 function cerrarModal(id){ document.getElementById(id).classList.remove('active'); }
 
@@ -1798,6 +1826,7 @@ function aplicarEfectoMovimiento(c, entry){
 }
 
 function revertirEfectoMovimiento(c, entry){
+  if(entry.tipo === 'no_compra') return; // no tiene efectos que revertir
   if(entry.tipo === 'compra'){
     c.saldo -= entry.costo;
     c.saldo += entry.montoPagado;

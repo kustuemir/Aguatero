@@ -530,3 +530,52 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
 .btn.verde:hover {
   background: #229954;
 }
+
+/* FIX: Cerrar modales al tocar afuera */
+.modal-bg { cursor: pointer; }
+.modal-bg > .modal { cursor: auto; }
+
+/* FIX: Botones táctiles más grandes (44px mínimo) */
+.topbar button, .footer-stats button, .card button, .btn-chico,
+.btn.chico, .fab, .help-bubble {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* FIX: Safe areas iPhone/Android */
+.topbar {
+  padding-top: max(10px, env(safe-area-inset-top));
+}
+.footer-stats {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+.help-bubble {
+  bottom: calc(90px + env(safe-area-inset-bottom));
+}
+
+/* FIX: Stepper no colapsa en pantallas chicas */
+@media (max-width: 360px) {
+  .stepper {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .stepper button {
+    min-width: 40px;
+    font-size: 1.1em;
+  }
+}
+
+/* FIX: Contraste mejorado */
+.card-row span:first-child {
+  color: #555 !important;
+}
+.texto-secundario, .nota-chica {
+  color: #555 !important;
+}
+
+/* FIX: Scroll en modales cuando teclado aparece */
+.modal {
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
