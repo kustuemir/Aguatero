@@ -1117,6 +1117,24 @@ async function importarDesdeContactos(){
     return;
   }
 
+  // Preguntar cómo guarda los contactos (solo la primera vez, después se recuerda)
+  let modoContacto = localStorage.getItem('modoContactoPref') || '';
+  if(!modoContacto){
+    let eleccion = prompt(
+      '¿Cómo guardás tus contactos en el celular?\n\n' +
+      '1 = Por DIRECCIÓN (ej: "San Martín 1234")\n' +
+      '2 = Por NOMBRE (ej: "Juan Pérez")\n' +
+      '3 = Nombre + Dirección (ej: "Juan - San Martín 1234")\n\n' +
+      'Escribí 1, 2 o 3:'
+    );
+    if(!eleccion || !['1','2','3'].includes(eleccion.trim())){
+      alert('Tenés que escribir 1, 2 o 3. Probá de nuevo cuando quieras.');
+      return;
+    }
+    modoContacto = eleccion.trim();
+    localStorage.setItem('modoContactoPref', modoContacto);
+  }
+
   try{
     const propiedades = ['name','tel'];
     const contactos = await navigator.contacts.select(propiedades, {multiple:true});
@@ -1128,17 +1146,29 @@ async function importarDesdeContactos(){
       if(!nombreCompleto) return;
       const telefono = (ct.tel && ct.tel[0]) ? ct.tel[0].replace(/[^0-9]/g,'') : '';
 
-      // Muchos guardan el nombre como "Cliente - Dirección" o "Cliente, Dirección"
-      // Probamos separarlo así; si no hay separador, todo queda en el nombre.
-      let nombre = nombreCompleto;
+      let nombre = '';
       let direccion = '';
-      const separadores = [' - ', ' – ', ', '];
-      for(const sep of separadores){
-        if(nombreCompleto.includes(sep)){
-          const partes = nombreCompleto.split(sep);
-          nombre = partes[0].trim();
-          direccion = partes.slice(1).join(sep).trim();
-          break;
+
+      if(modoContacto === '1'){
+        // Guarda por dirección → el contacto va a direccion, nombre queda genérico
+        direccion = nombreCompleto;
+        nombre = 'Cliente';
+      } else if(modoContacto === '2'){
+        // Guarda por nombre → todo al nombre
+        nombre = nombreCompleto;
+        direccion = '';
+      } else {
+        // Mixto: intentar separar
+        nombre = nombreCompleto;
+        direccion = '';
+        const separadores = [' - ', ' \u2013 ', ', '];
+        for(const sep of separadores){
+          if(nombreCompleto.includes(sep)){
+            const partes = nombreCompleto.split(sep);
+            nombre = partes[0].trim();
+            direccion = partes.slice(1).join(sep).trim();
+            break;
+          }
         }
       }
 
@@ -1162,7 +1192,18 @@ async function importarDesdeContactos(){
 
     guardarEstado();
     renderTodo();
-    alert(`Se importaron ${importados} contactos ✅\n\nTodavía no tienen día de reparto asignado, así que los vas a encontrar en la pestaña "Fuera de reparto". Entrá a cada uno (✏️ Editar datos) para completar dirección (si no se separó bien), precio y elegir sus días.`);
+
+    let msg = 'Se importaron ' + importados + ' contactos ✅\n\n';
+    if(modoContacto === '1'){
+      msg += 'Pusimos el nombre del contacto como DIRECCIÓN.\n';
+      msg += 'Buscalos en "Fuera de reparto" y ponele el nombre real tocando ✏️ Editar datos.';
+    } else if(modoContacto === '2'){
+      msg += 'Pusimos el contacto como NOMBRE del cliente.\n';
+      msg += 'Buscalos en "Fuera de reparto" y completá la dirección tocando ✏️ Editar datos.';
+    } else {
+      msg += 'Si algún contacto no se separó bien, podés editarlo tocando ✏️ Editar datos.';
+    }
+    alert(msg);
   }catch(e){
     // el usuario canceló el selector, no hacemos nada
   }
