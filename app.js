@@ -383,22 +383,83 @@ function actualizarNombreMostrado(){
 }
 
 // ---------- CHEQUEO DE SUSCRIPCION ----------
+const PRECIO_MEMBRESIA = 9900; // $9.900 ARS por mes
+
 async function verificarSuscripcion(){
   try{
     const { data, error } = await sb.from('suscripciones').select('*').eq('user_id', usuarioActual.id).maybeSingle();
-    if(error || !data) return; // sin fila todavía = etapa de prueba, lo dejamos entrar
+    if(error || !data){
+      // Sin fila = período de prueba (trial). Mostrar aviso de trial
+      mostrarEstadoMembresia(null);
+      return;
+    }
 
     const vencida = data.estado === 'vencida' || data.estado === 'cancelada' ||
       (data.fecha_vencimiento && new Date(data.fecha_vencimiento) < new Date());
 
+    const diasRestantes = data.fecha_vencimiento
+      ? Math.ceil((new Date(data.fecha_vencimiento) - new Date()) / 86400000)
+      : null;
+
     if(vencida){
-      document.getElementById('textoSuscripcionBloqueada').textContent =
-        'Tu suscripción' + (data.fecha_vencimiento ? ' venció el ' + isoAFechaLabel(data.fecha_vencimiento) : ' no está activa') + '. Renovala para seguir usando Aguatero.';
-      document.getElementById('linkPagoSuscripcion').href = 'https://www.mercadopago.com.ar/'; // TODO: reemplazar por el link real de suscripción
+      // BLOQUEO TOTAL
+      var textoBloqueo = 'Tu membresía' + (data.fecha_vencimiento ? ' venció el ' + isoAFechaLabel(data.fecha_vencimiento) : ' no está activa') + '.\n\n';
+      textoBloqueo += '💰 Precio mensual: $' + formatMoney(PRECIO_MEMBRESIA) + ' ARS\n\n';
+      textoBloqueo += 'Para reactivar tu cuenta, hacé el pago y comunicate con el administrador.';
+
+      document.getElementById('textoSuscripcionBloqueada').textContent = textoBloqueo;
+      document.getElementById('linkPagoSuscripcion').href = 'https://www.mercadopago.com.ar/';
       document.getElementById('pantallaSuscripcionBloqueada').style.display = 'flex';
+      mostrarEstadoMembresia(data);
+    } else {
+      // Activa - mostrar estado en el menú
+      mostrarEstadoMembresia(data);
+
+      // Aviso si vence pronto (5 días o menos)
+      if(diasRestantes !== null && diasRestantes <= 5 && diasRestantes > 0){
+        mostrarToast('Tu membresía vence en ' + diasRestantes + ' días. Comunicate con el administrador para renovar.', 'error');
+      }
     }
   }catch(e){
     // sin internet no se puede chequear: lo dejamos seguir trabajando offline con lo que ya tiene
+  }
+}
+
+function mostrarEstadoMembresia(data){
+  var el = document.getElementById('estadoMembresiaMenu');
+  if(!el) return;
+
+  if(!data){
+    // Trial
+    el.innerHTML = '<div style="background:#fff3cd; border:1px solid #ffc107; color:#856404; padding:10px; border-radius:8px; font-size:0.82em;">' +
+      '<strong>🟡 Período de prueba</strong><br>' +
+      'Estás usando Aguatero sin membresía activa.<br>' +
+      'Precio: $' + formatMoney(PRECIO_MEMBRESIA) + '/mes' +
+    '</div>';
+    return;
+  }
+
+  var vencida = data.estado === 'vencida' || (data.fecha_vencimiento && new Date(data.fecha_vencimiento) < new Date());
+  var diasRestantes = data.fecha_vencimiento ? Math.ceil((new Date(data.fecha_vencimiento) - new Date()) / 86400000) : null;
+
+  if(vencida){
+    el.innerHTML = '<div style="background:#f8d7da; border:1px solid #c0392b; color:#721c24; padding:10px; border-radius:8px; font-size:0.82em;">' +
+      '<strong>🔴 Membresía vencida</strong><br>' +
+      (data.fecha_vencimiento ? 'Venció: ' + isoAFechaLabel(data.fecha_vencimiento) + '<br>' : '') +
+      'Precio: $' + formatMoney(PRECIO_MEMBRESIA) + '/mes<br>' +
+      'Comunicate con el administrador para reactivar.' +
+    '</div>';
+  } else {
+    var color = diasRestantes <= 5 ? '#fff3cd' : '#d4edda';
+    var border = diasRestantes <= 5 ? '#ffc107' : '#2e8b57';
+    var textColor = diasRestantes <= 5 ? '#856404' : '#155724';
+    var icono = diasRestantes <= 5 ? '🟡' : '🟢';
+
+    el.innerHTML = '<div style="background:' + color + '; border:1px solid ' + border + '; color:' + textColor + '; padding:10px; border-radius:8px; font-size:0.82em;">' +
+      '<strong>' + icono + ' Membresía activa</strong><br>' +
+      (data.fecha_vencimiento ? 'Vence: ' + isoAFechaLabel(data.fecha_vencimiento) + ' (' + diasRestantes + ' días)<br>' : '') +
+      'Precio: $' + formatMoney(PRECIO_MEMBRESIA) + '/mes' +
+    '</div>';
   }
 }
 

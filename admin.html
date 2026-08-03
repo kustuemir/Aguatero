@@ -79,6 +79,7 @@
     <h2>🔧 Panel Admin</h2>
     <button onclick="cerrarSesion()">Salir</button>
   </div>
+  <div style="background:#0b3d5c; color:white; padding:10px 14px; border-radius:8px; margin-bottom:12px; text-align:center; font-size:0.85em;">💰 Membresía mensual: <strong>$9.900 ARS</strong></div>
   <div class="stats-grid" id="statsGrid"></div>
   <div class="tabs">
     <button class="tab active" onclick="cambiarTab('usuarios')">👥 Repartidores</button>
@@ -100,11 +101,12 @@
       <input type="text" id="nuevoPassword" placeholder="Mínimo 6 caracteres">
       <label>Días de membresía gratis</label>
       <select id="nuevoDiasGratis">
-        <option value="30">30 días (1 mes)</option>
-        <option value="15">15 días</option>
-        <option value="7">7 días</option>
+        <option value="30">30 días (1 mes) - $9.900</option>
+        <option value="15">15 días - $4.950</option>
+        <option value="7">7 días - $2.475</option>
         <option value="0">Sin membresía (trial)</option>
       </select>
+      <div style="font-size:0.78em; color:#666; margin-top:4px;">Precio mensual: $9.900 ARS</div>
       <button class="btn btn-success" id="btnCrearUser" onclick="crearUsuario()">Crear repartidor</button>
     </div>
   </div>
