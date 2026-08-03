@@ -87,7 +87,7 @@ async function syncCliente(c){
   try{
     const { error } = await sb.from('clientes').upsert(clienteToSupabase(c));
     if(error) console.log('Sync cliente error:', error.message);
-  }catch(e){ /* sin internet, silencioso */ }
+  }catch(e){ agregarAColaSync({tipo:'cliente', data: c}); actualizarIndicadorSync(); }
 }
 
 // Borrar un cliente de Supabase (borra sus movimientos en cascada)
@@ -96,7 +96,7 @@ async function syncBorrarCliente(clienteId){
   try{
     await sb.from('movimientos').delete().eq('cliente_id', clienteId).eq('user_id', usuarioActual.id);
     await sb.from('clientes').delete().eq('id', clienteId).eq('user_id', usuarioActual.id);
-  }catch(e){ /* silencioso */ }
+  }catch(e){ agregarAColaSync({tipo:'borrarCliente', clienteId: clienteId}); actualizarIndicadorSync(); }
 }
 
 // Subir un movimiento a Supabase
@@ -105,7 +105,7 @@ async function syncMovimiento(entry, clienteId){
   try{
     const { error } = await sb.from('movimientos').insert(movimientoToSupabase(entry, clienteId));
     if(error) console.log('Sync movimiento error:', error.message);
-  }catch(e){ /* silencioso */ }
+  }catch(e){ agregarAColaSync({tipo:'movimiento', data: entry, clienteId: clienteId}); actualizarIndicadorSync(); }
 }
 
 // Borrar un movimiento de Supabase (cuando se elimina o deshace)
@@ -113,7 +113,7 @@ async function syncBorrarMovimiento(entryId){
   if(!usuarioActual) return;
   try{
     await sb.from('movimientos').delete().eq('id', entryId).eq('user_id', usuarioActual.id);
-  }catch(e){ /* silencioso */ }
+  }catch(e){ agregarAColaSync({tipo:'borrarMovimiento', entryId: entryId}); actualizarIndicadorSync(); }
 }
 
 // Actualizar un movimiento en Supabase (ej: confirmar transferencia)
@@ -135,7 +135,7 @@ async function syncStock(){
       disp: stockCamion.disp
     });
     if(error) console.log('Sync stock error:', error.message);
-  }catch(e){ /* silencioso */ }
+  }catch(e){ agregarAColaSync({tipo:'stock'}); actualizarIndicadorSync(); }
 }
 
 // Subir resumen diario
@@ -159,7 +159,7 @@ async function syncResumenDiario(){
       hora: new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})
     }, { onConflict: 'user_id,fecha' });
     if(error) console.log('Sync resumen error:', error.message);
-  }catch(e){ /* silencioso */ }
+  }catch(e){ agregarAColaSync({tipo:'resumen'}); actualizarIndicadorSync(); }
 }
 
 // FIX: COLA DE SINCRONIZACIÓN OFFLINE

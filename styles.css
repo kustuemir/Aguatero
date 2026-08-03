@@ -432,8 +432,9 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 25;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 60;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  border: 2px solid white;
 }
 .help-panel {
   position: fixed;
