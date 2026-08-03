@@ -422,7 +422,8 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
 .help-bubble {
   position: fixed;
   bottom: 90px;
-  right: 20px;
+  left: 20px;
+  right: auto;
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -439,7 +440,8 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
 .help-panel {
   position: fixed;
   bottom: 145px;
-  right: 20px;
+  left: 20px;
+  right: auto;
   width: calc(100% - 40px);
   max-width: 360px;
   max-height: 400px;
@@ -551,6 +553,7 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
 }
 .help-bubble {
   bottom: calc(90px + env(safe-area-inset-bottom));
+  left: calc(20px + env(safe-area-inset-left));
 }
 
 /* FIX: Stepper no colapsa en pantallas chicas */
