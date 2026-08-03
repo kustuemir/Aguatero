@@ -612,7 +612,7 @@ function mostrarToast(mensaje, tipo){
 // ---------- DEUDA TOTAL (counter en el header) ----------
 function calcularDeudaTotal(){
   var total = 0;
-  clientes.forEach(function(c){ if(c.saldo > 0) total += c.saldo; });
+  clientes.forEach(function(c){ if(Math.round(c.saldo) > 0) total += c.saldo; });
   return total;
 }
 
@@ -1639,7 +1639,7 @@ function confirmarStock(tipo){
   syncResumenDiario();
 
   visitasHoy.add(c.id);
-  moverAlFinalDelDia(c.id, diaSeleccionado);
+  // FIX: No mover al final del dia - preserva el orden de la ruta
 
   cerrarModal('modalStock');
   renderTodo();
@@ -1667,7 +1667,7 @@ function marcarNoCompra(){
   syncMovimiento(entry, c.id);
   visitasHoy.add(c.id);
   // FIX: No mover al final del dia - preserva el orden de la ruta
-  // moverAlFinalDelDia(c.id, diaSeleccionado);
+  // // FIX: No mover al final del dia - preserva el orden de la ruta
   // FIX: Vibración de confirmación
   if('vibrate' in navigator) navigator.vibrate(30);
   cerrarModal('modalStock');
@@ -2375,7 +2375,7 @@ function ventaRapida(clienteId){
   syncResumenDiario();
   visitasHoy.add(c.id);
   // FIX: No mover al final del dia
-  // moverAlFinalDelDia(c.id, diaSeleccionado);
+  // // FIX: No mover al final del dia - preserva el orden de la ruta
   if('vibrate' in navigator) navigator.vibrate(50);
   renderTodo();
 }

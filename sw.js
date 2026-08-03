@@ -7,6 +7,7 @@ const ARCHIVOS_CACHE = [
   './index.html',
   './styles.css',
   './app.js',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
