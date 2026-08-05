@@ -505,7 +505,7 @@ const CLAVE_STORAGE_BASE = 'aguacontrol_estado_v1';
 function claveStorageActual(){
   return CLAVE_STORAGE_BASE + '_' + (usuarioActual ? usuarioActual.id : 'sin_sesion');
 }
-const DIAS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+const DIAS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo","sin dia"];
 
 let clientes = [];
 let contadorClientes = 0;
