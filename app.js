@@ -671,6 +671,72 @@ const DB_NOMBRE = 'aguacontrol_db';
 const DB_ALMACEN = 'estado';
 let promesaDB = null;
 
+// ---------- CIFRADO DE DATOS SENSIBLES EN REPOSO (AES-GCM) ----------
+// SECURITY FIX: antes los datos de clientes (nombre, direccion, telefono, deuda)
+// se guardaban en texto plano en localStorage/IndexedDB. Ahora se cifran con
+// AES-GCM 256 usando Web Crypto API. La clave se DERIVA del UID del usuario
+// logueado (via PBKDF2), nunca esta hardcodeada ni se guarda en disco.
+// Si el navegador no soporta Web Crypto, o todavia no hay usuario logueado,
+// se hace fallback a texto plano (para no romper el uso offline).
+const SAL_CIFRADO_APP = 'aguatero-pbkdf2-salt-v1'; // sal fija de la app (no es secreta: solo separa el espacio de derivacion)
+let _claveCifradoCache = null;
+
+async function derivarClaveCifrado(uid){
+  if(_claveCifradoCache && _claveCifradoCache.uid === uid) return _claveCifradoCache.key;
+  const enc = new TextEncoder();
+  const claveBase = await crypto.subtle.importKey('raw', enc.encode(String(uid)), 'PBKDF2', false, ['deriveKey']);
+  const clave = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: enc.encode(SAL_CIFRADO_APP), iterations: 100000, hash: 'SHA-256' },
+    claveBase,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+  _claveCifradoCache = { uid, key: clave };
+  return clave;
+}
+
+function _bufAB64(buf){ return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))); }
+function _ab64ABuf(str){
+  const bin = atob(str);
+  const arr = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+  return arr.buffer;
+}
+
+async function cifrarTexto(texto, uid){
+  const clave = await derivarClaveCifrado(uid);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder();
+  const cifrado = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, clave, enc.encode(texto));
+  return JSON.stringify({ v: 1, iv: _bufAB64(iv), data: _bufAB64(cifrado) });
+}
+
+async function descifrarTexto(payloadJson, uid){
+  const obj = JSON.parse(payloadJson);
+  const clave = await derivarClaveCifrado(uid);
+  const iv = new Uint8Array(_ab64ABuf(obj.iv));
+  const data = _ab64ABuf(obj.data);
+  const plano = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, clave, data);
+  return new TextDecoder().decode(plano);
+}
+
+// Interpreta un valor guardado: si es el sobre cifrado {v,iv,data} lo descifra;
+// si no (datos guardados por versiones viejas de la app, en texto plano), lo devuelve tal cual.
+async function textoPlanoDesdeAlmacenamiento(valorGuardado){
+  if(!valorGuardado) return valorGuardado;
+  try{
+    const posible = JSON.parse(valorGuardado);
+    if(posible && posible.v === 1 && posible.iv && posible.data && usuarioActual && usuarioActual.id && window.crypto && window.crypto.subtle){
+      return await descifrarTexto(valorGuardado, usuarioActual.id);
+    }
+  }catch(e){ /* no era un sobre cifrado: es JSON plano de una version anterior */ }
+  return valorGuardado;
+}
+
+// Cola de escritura: evita que guardados concurrentes (cifrado es async) se pisen entre si.
+let _colaGuardadoEstado = Promise.resolve();
+
 function abrirBaseRespaldo(){
   if(promesaDB) return promesaDB;
   promesaDB = new Promise((resolve)=>{
@@ -688,12 +754,14 @@ function abrirBaseRespaldo(){
   return promesaDB;
 }
 
-function guardarEnBaseRespaldo(estado){
+// A partir de la version con cifrado, aca se guarda/lee un STRING (texto plano
+// JSON o sobre cifrado {v,iv,data} segun corresponda), no el objeto de estado.
+function guardarEnBaseRespaldo(valorString){
   abrirBaseRespaldo().then(db=>{
     if(!db) return;
     try{
       const tx = db.transaction(DB_ALMACEN, 'readwrite');
-      tx.objectStore(DB_ALMACEN).put(estado, 'estadoActual');
+      tx.objectStore(DB_ALMACEN).put(valorString, 'estadoActual');
     }catch(e){ /* silencioso */ }
   });
 }
@@ -750,12 +818,10 @@ function aplicarEstadoDesdeObjeto(estado){
 
 function guardarEstado(){
   const estado = construirEstadoActual();
-  try{
-    localStorage.setItem(claveStorageActual(), JSON.stringify(estado));
-  }catch(e){
-    console.log('No se pudo guardar en localStorage:', e);
-  }
-  guardarEnBaseRespaldo(estado);
+  const json = JSON.stringify(estado);
+  // SECURITY FIX: el cifrado (Web Crypto) es asincronico. Encolamos los guardados
+  // para que no se pisen entre si si se llama a guardarEstado() varias veces seguidas.
+  _colaGuardadoEstado = _colaGuardadoEstado.then(()=> _guardarEstadoCifrado(json)).catch(()=>{});
   // Sincronizar con Supabase (silencioso, solo si hay internet)
   if(usuarioActual){
     syncStock();
@@ -763,12 +829,31 @@ function guardarEstado(){
   }
 }
 
-function cargarEstado(){
+async function _guardarEstadoCifrado(json){
+  let valorAGuardar = json;
+  if(usuarioActual && usuarioActual.id && window.crypto && window.crypto.subtle){
+    try{
+      valorAGuardar = await cifrarTexto(json, usuarioActual.id);
+    }catch(e){
+      console.log('No se pudo cifrar el estado, se guarda sin cifrar:', e);
+      valorAGuardar = json;
+    }
+  }
+  try{
+    localStorage.setItem(claveStorageActual(), valorAGuardar);
+  }catch(e){
+    console.log('No se pudo guardar en localStorage:', e);
+  }
+  guardarEnBaseRespaldo(valorAGuardar);
+}
+
+async function cargarEstado(){
   let cargadoOk = false;
   try{
     const guardado = localStorage.getItem(claveStorageActual());
     if(guardado){
-      aplicarEstadoDesdeObjeto(JSON.parse(guardado));
+      const json = await textoPlanoDesdeAlmacenamiento(guardado);
+      aplicarEstadoDesdeObjeto(JSON.parse(json));
       cargadoOk = true;
     }
   }catch(e){
@@ -779,8 +864,11 @@ function cargarEstado(){
   if(!cargadoOk){
     // La memoria principal vino vacía (se borró). Probamos recuperar
     // de la memoria de respaldo (IndexedDB), que es más difícil de borrar.
-    cargarDeBaseRespaldo().then(estado=>{
-      if(estado){
+    const guardadoRespaldo = await cargarDeBaseRespaldo();
+    if(guardadoRespaldo){
+      try{
+        const json = await textoPlanoDesdeAlmacenamiento(guardadoRespaldo);
+        const estado = JSON.parse(json);
         aplicarEstadoDesdeObjeto(estado);
         verificarResetDiario();
         guardarEstado();
@@ -789,8 +877,10 @@ function cargarEstado(){
           ? new Date(estado.ultimaModificacion).toLocaleString('es-AR')
           : 'una fecha anterior';
         alert(`⚠️ Se recuperaron datos de una copia de seguridad automática (del ${fechaRespaldo}), porque la memoria principal del celular se vació.\n\nRevisá que esté todo correcto — si ves algo raro o viejo (como clientes que ya habías borrado), podés eliminarlo de nuevo tranquilo.`);
+      }catch(e){
+        console.log('No se pudo recuperar la copia de seguridad local:', e);
       }
-    });
+    }
   }
 }
 
@@ -2489,7 +2579,7 @@ function renderPorVisitar(){
       .sort((a,b)=> a.nombre.localeCompare(b.nombre));
 
     if(resultados.length===0){
-      cont.innerHTML = '<div class="empty-msg">🔍 No se encontraron clientes con "' + searchTerm + '"</div>';
+      cont.innerHTML = '<div class="empty-msg">🔍 No se encontraron clientes con "' + escapeHtml(searchTerm) + '"</div>';
       return;
     }
     cont.innerHTML = resultados.map((c,i)=>{
@@ -2923,8 +3013,8 @@ document.addEventListener('touchend', function(e){
   ptrPulling = false;
 }, { passive: true });
 
-function inicializarAppLuegoDeLogin(){
-  cargarEstado();
+async function inicializarAppLuegoDeLogin(){
+  await cargarEstado();
   renderFiltroTabs();
   // Asegurar que al abrir la app se vean todos los clientes
   modoTodosClientes = true;

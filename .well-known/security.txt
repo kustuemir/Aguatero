@@ -1,0 +1,4 @@
+Contact: mailto:security@aguatero.app
+Preferred-Languages: es, en
+Canonical: https://kustuemir.github.io/Aguatero/.well-known/security.txt
+Expires: 2027-08-05T00:00:00.000Z

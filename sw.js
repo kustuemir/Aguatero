@@ -1,18 +1,20 @@
 // Service Worker para AGUATERO
 // FIX: Cache con network-first + timeout de 3s, solo GET, valida status 200
+// SECURITY FIX: nunca cachear llamadas a Supabase (datos/auth), el panel admin,
+// ni respuestas con header Authorization (defensa en profundidad, ademas del
+// chequeo de response.type === 'basic' que ya excluye recursos cross-origin).
 
-const CACHE_NOMBRE = 'aguatero-cache-v7';
+const CACHE_NOMBRE = 'aguatero-cache-v8';
+const SUPABASE_JS_VERSION = '2.112.0'; // version fijada (no floating @2) para poder usar SRI sin roturas
 const ARCHIVOS_CACHE = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js',
+  `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@${SUPABASE_JS_VERSION}/dist/umd/supabase.min.js`,
   './manifest.json',
   './icon-192.png',
-  './icon-512.png',
-  // FIX: Agregar SDK de Supabase al cache para que funcione offline
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js'
+  './icon-512.png'
 ];
 
 self.addEventListener('install', function(evento){
@@ -49,13 +51,25 @@ self.addEventListener('fetch', function(evento){
     return;
   }
 
+  // SECURITY FIX: nunca cachear ni servir desde cache llamadas a Supabase (auth/datos),
+  // el panel admin (usa la service key, siempre debe ir en vivo a la red),
+  // ni requests con header Authorization presente.
+  const urlReq = evento.request.url;
+  const esSensible = urlReq.indexOf('supabase.co') !== -1 ||
+                      urlReq.indexOf('/admin.html') !== -1 ||
+                      evento.request.headers.has('Authorization');
+  if(esSensible){
+    evento.respondWith(fetch(evento.request));
+    return;
+  }
+
   // FIX: Timeout de 3 segundos - si la red no responde, usar caché
   var timeoutPromise = new Promise(function(resolve){
     setTimeout(function(){ resolve(null); }, 3000);
   });
 
   var networkPromise = fetch(evento.request).then(function(respuesta){
-    // FIX: Solo cachear respuestas OK con status 200 (no cachear errores 4xx/5xx)
+    // FIX: Solo cachear respuestas OK con status 200, mismo origen o CDN estatico (no cross-origin con datos)
     if(respuesta && respuesta.ok && respuesta.status === 200 && respuesta.type === 'basic'){
       var copia = respuesta.clone();
       caches.open(CACHE_NOMBRE).then(function(cache){
