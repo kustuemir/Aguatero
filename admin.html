@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.supabase.co; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'self';">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <title>Panel Admin - Aguatero</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.0/dist/umd/supabase.min.js" integrity="sha384-De+l/Df7qym5QBDVocD3+gW1S7IjR3epf+6KbRDjB3FCCzM/LqVTwqckT6FhFar8" crossorigin="anonymous"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, system-ui, sans-serif; background: #f4f1ea; color: #1a2b3c; min-height: 100vh; }
@@ -63,6 +66,12 @@
   <div class="login-card">
     <h1>🔧 Panel Admin</h1>
     <p>Aguatero - Gestión de repartidores</p>
+    <div style="background:#f8d7da; border:1px solid #c0392b; color:#721c24; padding:10px 12px; border-radius:8px; font-size:0.78em; margin-bottom:10px;">
+      ⚠️ <strong>Riesgo de seguridad:</strong> esta página pide la <strong>service_role key</strong> de Supabase,
+      que da acceso TOTAL a la base (evita todas las reglas de seguridad). Nunca la compartas, nunca la pegues
+      en otra página, y no dejes esta pantalla abierta en un dispositivo compartido. Se recomienda migrar estas
+      acciones a una función de servidor — ver <code>SECURITY.md</code> en el repo.
+    </div>
     <label>Service Role Key (de Supabase)</label>
     <input type="password" id="inputServiceKey" class="key-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ...">
     <div class="key-hint">Necesaria para crear/eliminar usuarios. Obtenela en: <a href="https://supabase.com/dashboard" target="_blank">Supabase → Settings → API → service_role</a>. Solo se guarda en esta sesión.</div>
