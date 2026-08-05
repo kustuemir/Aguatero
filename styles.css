@@ -157,7 +157,7 @@ input, select {
   border-radius: 8px;
   font-size: 0.95em;
 }
-label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
+label { font-size: 0.8em; color: var(--texto); opacity: 0.8; font-weight: 600; }
 .section-title {
   background: var(--azul-medio);
   color: white;
@@ -170,7 +170,7 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
 }
 .movimientos { max-height: 200px; overflow-y: auto; }
 .mov-item { font-size: 0.82em; padding: 6px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; gap: 8px; }
-.empty-msg { text-align: center; color: #4a5568; padding: 30px 10px; font-size: 0.9em; }
+.empty-msg { text-align: center; color: var(--texto); opacity: 0.55; padding: 30px 10px; font-size: 0.9em; }
 .fab {
   position: fixed;
   bottom: 80px;
@@ -217,7 +217,7 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
   overflow-y: auto;
 }
 .modal h2 { margin-top: 0; font-size: 1.1em; }
-.close-x { float: right; background: none; border: none; font-size: 1.5em; color: #999; padding: 10px 14px; }
+.close-x { float: right; background: none; border: none; font-size: 1.5em; color: var(--texto); opacity: 0.5; padding: 10px 14px; }
 .dia-selector { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
 .dia-chip {
   padding: 6px 10px;
@@ -548,10 +548,12 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
 
 /* FIX: Contraste mejorado */
 .card-row span:first-child {
-  color: #555 !important;
+  color: var(--texto) !important;
+  opacity: 0.65;
 }
 .texto-secundario, .nota-chica {
-  color: #555 !important;
+  color: var(--texto) !important;
+  opacity: 0.65;
 }
 
 /* FIX: Scroll en modales cuando teclado aparece */
@@ -559,4 +561,11 @@ label { font-size: 0.8em; color: #1a2b3c; font-weight: 600; }
   max-height: calc(100vh - 40px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+
+/* FIX: placeholders visibles en ambos temas */
+input::placeholder, textarea::placeholder {
+  color: var(--texto);
+  opacity: 0.45;
 }
