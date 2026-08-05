@@ -1,6 +1,6 @@
 // ---------- SUPABASE (login / cuentas) ----------
 const SUPABASE_URL = 'https://gpchmuhxqmpwjrrtbsgr.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdwY2htdWh4cW1wd2pycnRic2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODcyMjQsImV4cCI6MjEwMDg2MzIyNH0.9KQksogtzzhb9uzdAAdHOmuNWnMTHa0PUMR3wDJCgG4';
+const SUPABASE_ANON_KEY = 'sb_publishable_X2mq9C_fSrLysi7UVBYb3Q_Q9lNEbgR';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ---------- SINCRONIZACIÓN CON SUPABASE (respaldo en la nube) ----------
