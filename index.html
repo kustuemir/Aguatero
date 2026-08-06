@@ -686,7 +686,10 @@
   <button class="btn outline" style="margin-top:14px; max-width:300px; width:100%; background:transparent; color:white; border-color:white;" onclick="cerrarSesion(); document.getElementById('pantallaSuscripcionBloqueada').style.display='none';">🚪 Cerrar sesión</button>
 </div>
 
-<script src="app.js"></script>
+<script>
+  // Actualiza la app automaticamente para todos los clientes
+  document.write('<script src="app.js?v=' + Date.now() + '"><\/script>');
+</script>
 <!-- VISTA CLIENTES INACTIVOS -->
 <div class="view" id="view-clientesInactivos">
   <button class="btn outline" onclick="document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById('view-main').classList.add('active');">← Volver</button>
