@@ -227,7 +227,21 @@ label { font-size: 0.8em; color: var(--texto); opacity: 0.8; font-weight: 600; }
   font-size: 0.75em;
   border: 1px solid var(--celeste);
 }
-.dia-chip.activo { background: var(--celeste); color: white; }
+.dia-chip.activo { 
+  background: var(--naranja) !important; 
+  color: white !important; 
+  border-color: var(--naranja) !important;
+}
+body.oscuro .dia-chip {
+  background: #223b4a;
+  border-color: #2c4a5c;
+  color: #e8eef2;
+}
+body.oscuro .dia-chip.activo {
+  background: #e08a3e !important;
+  color: white !important;
+  border-color: #e08a3e !important;
+}
 .preview-box {
   background: var(--arena);
   border-radius: 10px;
