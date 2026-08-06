@@ -1,84 +1,60 @@
-// Service Worker para AGUATERO
-// FIX: Cache con network-first + timeout de 3s, solo GET, valida status 200
-
-const CACHE_NOMBRE = 'aguatero-cache-v7';
-const ARCHIVOS_CACHE = [
-  './',
-  './index.html',
-  './styles.css',
-  './app.js',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
-  // FIX: Agregar SDK de Supabase al cache para que funcione offline
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js'
-];
+// AGUATERO - Service Worker AUTOMATICO - Actualiza index.html siempre
+const CACHE_NOMBRE = 'aguatero-cache-auto-v1';
 
 self.addEventListener('install', function(evento){
+  self.skipWaiting();
   evento.waitUntil(
     caches.open(CACHE_NOMBRE).then(function(cache){
-      return cache.addAll(ARCHIVOS_CACHE).catch(function(e){
-        console.log('Algunos archivos no se pudieron cachear:', e);
-      });
+      return cache.addAll([
+        './',
+        './styles.css',
+        './app.js',
+        './manifest.json',
+        './icon-192.png',
+        './icon-512.png'
+      ]);
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', function(evento){
   evento.waitUntil(
     caches.keys().then(function(nombres){
       return Promise.all(
-        nombres.filter(function(nombre){ return nombre !== CACHE_NOMBRE; })
-               .map(function(nombre){ return caches.delete(nombre); })
+        nombres.filter(function(n){ return n !== CACHE_NOMBRE; }).map(function(n){ return caches.delete(n); })
       );
-    })
+    }).then(function(){ return self.clients.claim(); })
   );
-  self.clients.claim();
 });
 
-self.addEventListener('message', function(evento){
-  if(evento.data === 'skipWaiting') self.skipWaiting();
-});
-
-// FIX: Estrategia network-first con timeout de 3s + solo cachear GET status 200
+// FIX CLAVE: index.html y / SIEMPRE de internet primero, nunca del cache viejo
 self.addEventListener('fetch', function(evento){
-  // FIX: Ignorar peticiones no GET (POST/PUT/DELETE de Supabase) y esquemas no soportados
-  if(evento.request.method !== 'GET' || !evento.request.url.startsWith('http')){
+  if (evento.request.method !== 'GET') return;
+  
+  // Si pide index.html o la raiz, va a internet primero
+  if (evento.request.url.includes('index.html') || evento.request.url.endsWith('/') || evento.request.url.endsWith('/Aguatero') || evento.request.url.endsWith('/Aguatero/')) {
+    evento.respondWith(
+      fetch(evento.request, {cache: 'no-store'})
+        .then(function(res){
+          return res;
+        })
+        .catch(function(){
+          return caches.match(evento.request);
+        })
+    );
     return;
   }
-
-  // FIX: Timeout de 3 segundos - si la red no responde, usar caché
-  var timeoutPromise = new Promise(function(resolve){
-    setTimeout(function(){ resolve(null); }, 3000);
-  });
-
-  var networkPromise = fetch(evento.request).then(function(respuesta){
-    // FIX: Solo cachear respuestas OK con status 200 (no cachear errores 4xx/5xx)
-    if(respuesta && respuesta.ok && respuesta.status === 200 && respuesta.type === 'basic'){
-      var copia = respuesta.clone();
-      caches.open(CACHE_NOMBRE).then(function(cache){
-        cache.put(evento.request, copia);
-      });
-    }
-    return respuesta;
-  });
-
+  
+  // Para todo lo demas (css, js, iconos): cache primero, si no hay va a internet
   evento.respondWith(
-    Promise.race([networkPromise, timeoutPromise])
-      .then(function(resultado){
-        if(resultado) return resultado;
-        // Timeout - servir desde caché
-        return caches.match(evento.request).then(function(cached){
-          if(cached) return cached;
-          // Si no hay en caché, intentar la red de todos modos
-          return fetch(evento.request);
+    caches.match(evento.request).then(function(respuesta){
+      return respuesta || fetch(evento.request).then(function(resFetch){
+        // Guarda en cache lo nuevo para offline
+        return caches.open(CACHE_NOMBRE).then(function(cache){
+          cache.put(evento.request, resFetch.clone());
+          return resFetch;
         });
-      })
-      .catch(function(){
-        // Sin red y sin caché - intentar caché como último recurso
-        return caches.match(evento.request);
-      })
+      });
+    })
   );
 });
