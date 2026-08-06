@@ -228,9 +228,9 @@ label { font-size: 0.8em; color: var(--texto); opacity: 0.8; font-weight: 600; }
   border: 1px solid var(--celeste);
 }
 .dia-chip.activo { 
-  background: var(--celeste) !important; 
+  background: var(--azul-medio) !important; 
   color: white !important; 
-  border-color: var(--celeste) !important;
+  border-color: var(--azul-medio) !important;
 }
 body.oscuro .dia-chip {
   background: #223b4a;
