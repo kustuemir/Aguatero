@@ -3001,3 +3001,48 @@ function responderHelpBot(pregunta){
 
   return 'Mmm, no estoy seguro de eso \ud83e\uddd0 Pod\u00e9s preguntarme sobre: clientes, ventas, stock, deudas, rutas, transferencias, exportar datos o cualquier problema que tengas.';
 }
+// ---------- PANEL ADMIN - SOLO PARA trabajovideo2121@gmail.com ----------
+const ADMIN_EMAIL = 'trabajovideo2121@gmail.com';
+function esAdmin(){
+  return usuarioActual && usuarioActual.email && usuarioActual.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+}
+function mostrarBotonAdminSiCorresponde(){
+  if(!esAdmin()) return;
+  if(document.getElementById('btnAdminPanel')) return;
+  const menu = document.getElementById('menuDropdown');
+  if(!menu) return;
+  const btn = document.createElement('button');
+  btn.id = 'btnAdminPanel';
+  btn.className = 'menu-item';
+  btn.style.background = '#ff8f00';
+  btn.style.color = '#000';
+  btn.style.fontWeight = '900';
+  btn.style.border = '2px solid #000';
+  btn.textContent = '👑 ADMIN - VER USO DE CLIENTES';
+  btn.onclick = () => { cerrarMenus(); mostrarPanelAdmin(); };
+  menu.insertBefore(btn, menu.firstChild);
+}
+async function mostrarPanelAdmin(){
+  let modal = document.getElementById('modalAdmin');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'modalAdmin';
+    modal.className = 'modal-bg active';
+    modal.innerHTML = `<div class="modal-card" style="max-width:95%;width:600px;max-height:90vh;overflow-y:auto;"><h2>👑 PANEL ADMIN</h2><div id="adminContenido">Cargando...</div><div class="btn-row" style="margin-top:12px;"><button class="btn outline" onclick="document.getElementById('modalAdmin').classList.remove('active')">Cerrar</button><button class="btn" onclick="cargarDatosAdmin()">Actualizar</button></div></div>`;
+    document.body.appendChild(modal);
+  } else modal.classList.add('active');
+  cargarDatosAdmin();
+}
+async function cargarDatosAdmin(){
+  const cont = document.getElementById('adminContenido');
+  cont.innerHTML = 'Cargando...';
+  try{
+    const { data: movs, error } = await sb.from('movimientos').select('*').order('fecha_iso',{ascending:false}).limit(200);
+    if(error){ cont.innerHTML = `RLS bloquea ver otros usuarios.<br>Error: ${error.message}<br><br>Andá a Supabase > Table Editor > movimientos para verlos.`; return; }
+    cont.innerHTML = movs.map(m=>`<div class="card" style="font-size:0.8em;padding:6px;">${m.fecha_iso} ${m.hora||''} - ${m.tipo} $${m.costo||0} - user:${m.user_id.slice(0,6)}</div>`).join('') || 'Sin movimientos';
+  }catch(e){ cont.innerHTML='Error:'+e.message; }
+}
+const __onLoginOkOriginal = onLoginExitoso;
+onLoginExitoso = function(session){ __onLoginOkOriginal(session); setTimeout(mostrarBotonAdminSiCorresponde,700); };
+const __initOriginal = inicializarAppLuegoDeLogin;
+inicializarAppLuegoDeLogin = function(){ __initOriginal(); setTimeout(mostrarBotonAdminSiCorresponde,900); };
