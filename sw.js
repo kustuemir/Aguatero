@@ -1,5 +1,5 @@
 // AGUATERO - Service Worker AUTOMATICO - Actualiza index.html siempre
-const CACHE_NOMBRE = 'aguatero-cache-auto-v1';
+const CACHE_NOMBRE = 'aguatero-cache-auto-v2';
 
 self.addEventListener('install', function(evento){
   self.skipWaiting();
