@@ -315,6 +315,14 @@ async function accionLogin(){
   try{
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if(error){ mostrarErrorLogin(traducirErrorSupabase(error)); return; }
+    // "Recordarme": si lo desmarca, la próxima vez que abra la app le va a
+    // volver a pedir usuario y contraseña en vez de entrar solo.
+    const recordarme = document.getElementById('chkRecordarme');
+    if(recordarme && !recordarme.checked){
+      localStorage.setItem('aguatero_no_recordar', '1');
+    } else {
+      localStorage.removeItem('aguatero_no_recordar');
+    }
     onLoginExitoso(data.session);
   }catch(e){
     mostrarErrorLogin('No se pudo conectar. Revisá que tengas internet e intentá de nuevo.');
@@ -330,6 +338,20 @@ function traducirErrorSupabase(error){
   if(msg.includes('User already registered')) return 'Ya existe una cuenta con ese email. Probá "Ingresar".';
   if(msg.includes('Password should be')) return 'La contraseña es muy corta (mínimo 6 caracteres).';
   return 'Ocurrió un error: ' + msg;
+}
+
+// Mostrar/ocultar la contraseña con el ícono del ojito
+function toggleMostrarPassword(){
+  const input = document.getElementById('loginPassword');
+  const btn = document.getElementById('btnTogglePassword');
+  if(!input) return;
+  if(input.type === 'password'){
+    input.type = 'text';
+    if(btn) btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    if(btn) btn.textContent = '👁️';
+  }
 }
 
 // ---------- RECUPERAR CONTRASEÑA ----------
@@ -490,6 +512,12 @@ async function cerrarSesion(){
 // el usuario y contraseña cada vez que se abre, sin necesitar internet siempre)
 async function verificarSesionAlAbrir(){
   try{
+    // Si la vez pasada desmarcó "Recordarme", no entramos solos: cerramos
+    // esa sesión guardada y dejamos la pantalla de login a la vista.
+    if(localStorage.getItem('aguatero_no_recordar') === '1'){
+      await sb.auth.signOut();
+      return;
+    }
     const { data } = await sb.auth.getSession();
     if(data.session){
       onLoginExitoso(data.session);
@@ -2747,6 +2775,9 @@ function cerrarRepartoDelDia(){
   // El stock del camión se vacía: lo que sobró queda anotado arriba en el resumen del día
   stockCamion = { b20: 0, b10: 0, disp: 0 };
 
+  // Recién ACA volvemos a "todos los clientes": el reparto quedó cerrado a propósito.
+  modoTodosClientes = true;
+
   guardarEstado();
   renderEstadisticas();
   renderTodo();
@@ -2926,8 +2957,10 @@ document.addEventListener('touchend', function(e){
 function inicializarAppLuegoDeLogin(){
   cargarEstado();
   renderFiltroTabs();
-  // Asegurar que al abrir la app se vean todos los clientes
-  modoTodosClientes = true;
+  // FIX: ya NO forzamos "todos los clientes" al abrir la app. Si el usuario
+  // tenia un reparto del dia cargado, se mantiene igual aunque cierre y
+  // vuelva a abrir la app - se sale de ese modo recien cuando cierra el
+  // reparto del dia (ver cerrarRepartoDelDia).
   renderTodo();
 
   // Guardado extra de seguridad: por si el celular cierra la app de golpe

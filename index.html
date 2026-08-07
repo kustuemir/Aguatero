@@ -24,6 +24,12 @@
 <!-- PANTALLA DE CARGA + LOGIN -->
 <div id="pantallaLogin" style="min-height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:24px; box-sizing:border-box; background:linear-gradient(180deg, #0b3d5c 0%, #0a2d42 50%, #14232f 100%); position:relative; overflow-y:auto;">
 
+  <!-- Burbujas decorativas de fondo -->
+  <div class="login-bubble" style="width:90px; height:90px; top:8%; left:6%;"></div>
+  <div class="login-bubble" style="width:50px; height:50px; top:18%; right:10%;"></div>
+  <div class="login-bubble" style="width:34px; height:34px; top:38%; left:12%;"></div>
+  <div class="login-bubble" style="width:70px; height:70px; bottom:12%; right:8%;"></div>
+
   <!-- Onda de agua animada de fondo -->
   <div style="position:absolute; bottom:0; left:0; right:0; height:40%; overflow:hidden; opacity:0.15; pointer-events:none;">
     <svg viewBox="0 0 1200 200" preserveAspectRatio="none" style="width:100%; height:100%; position:absolute; bottom:0;">
@@ -42,103 +48,57 @@
     </svg>
   </div>
 
-  <!-- LOGO + ANIMACIÓN DEL CAMIÓN -->
-  <div style="text-align:center; margin-bottom:30px; position:relative; z-index:1;">
+  <!-- TARJETA DE VIDRIO (login) -->
+  <div class="login-glass" style="position:relative; z-index:1;">
 
-    <!-- Logo: camión llevando bidones, animado -->
-    <div style="position:relative; width:200px; height:100px; margin:0 auto 12px;">
-      <svg viewBox="0 0 200 100" style="width:100%; height:100%;">
-        <!-- Bidones en el camión (con leve movimiento) -->
-        <g>
-          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-2; 0,0" dur="1.5s" repeatCount="indefinite"/>
-          <!-- Bidón 1 -->
-          <ellipse cx="58" cy="42" rx="11" ry="14" fill="#42a5f5" stroke="#1565c0" stroke-width="1.5"/>
-          <rect x="54" y="28" width="8" height="5" rx="1" fill="#1565c0"/>
-          <line x1="58" y1="30" x2="58" y2="54" stroke="#0d47a1" stroke-width="1" opacity="0.5"/>
-          <!-- Bidón 2 -->
-          <ellipse cx="78" cy="42" rx="11" ry="14" fill="#42a5f5" stroke="#1565c0" stroke-width="1.5"/>
-          <rect x="74" y="28" width="8" height="5" rx="1" fill="#1565c0"/>
-          <line x1="78" y1="30" x2="78" y2="54" stroke="#0d47a1" stroke-width="1" opacity="0.5"/>
-          <!-- Bidón 3 -->
-          <ellipse cx="98" cy="42" rx="11" ry="14" fill="#42a5f5" stroke="#1565c0" stroke-width="1.5"/>
-          <rect x="94" y="28" width="8" height="5" rx="1" fill="#1565c0"/>
-          <line x1="98" y1="30" x2="98" y2="54" stroke="#0d47a1" stroke-width="1" opacity="0.5"/>
+    <!-- Ícono: gota con camión adentro -->
+    <div class="login-icon-badge">
+      <svg viewBox="0 0 100 100" width="56" height="56">
+        <path d="M50 10 C50 10 22 45 22 64 C22 79 35 90 50 90 C65 90 78 79 78 64 C78 45 50 10 50 10 Z"
+              fill="none" stroke="#6fc3e0" stroke-width="4"/>
+        <g transform="translate(32,54)">
+          <rect x="0" y="6" width="24" height="12" rx="1.5" fill="#e08a3e"/>
+          <path d="M24 8 L32 8 L36 14 L36 18 L24 18 Z" fill="#e08a3e"/>
+          <rect x="26" y="9.5" width="6" height="5" fill="#cfe9f5"/>
+          <circle cx="7" cy="19" r="3.4" fill="#12303f"/>
+          <circle cx="29" cy="19" r="3.4" fill="#12303f"/>
         </g>
-
-        <!-- Camión (con animación de movimiento) -->
-        <g>
-          <animateTransform attributeName="transform" type="translate" values="0,0; 1,0; 0,0; -1,0; 0,0" dur="0.4s" repeatCount="indefinite"/>
-          <!-- Caja del camión -->
-          <rect x="40" y="48" width="80" height="32" rx="3" fill="#ff8f00" stroke="#e65100" stroke-width="1.5"/>
-          <rect x="42" y="52" width="76" height="6" fill="#ff6f00" opacity="0.5"/>
-          <!-- Cabina -->
-          <path d="M120,48 L120,80 L150,80 L150,55 L140,48 Z" fill="#ffa726" stroke="#e65100" stroke-width="1.5"/>
-          <!-- Ventana -->
-          <path d="M138,52 L148,52 L148,60 L138,60 Z" fill="#e1f5fe" stroke="#0277bd" stroke-width="1"/>
-          <!-- Faro -->
-          <circle cx="149" cy="68" r="2" fill="#fff59d"/>
-          <!-- Ruedas (girando) -->
-          <g>
-            <circle cx="60" cy="82" r="9" fill="#37474f" stroke="#263238" stroke-width="2"/>
-            <circle cx="60" cy="82" r="3" fill="#90a4ae">
-              <animateTransform attributeName="transform" type="rotate" from="0 60 82" to="360 60 82" dur="0.5s" repeatCount="indefinite"/>
-            </circle>
-          </g>
-          <g>
-            <circle cx="130" cy="82" r="9" fill="#37474f" stroke="#263238" stroke-width="2"/>
-            <circle cx="130" cy="82" r="3" fill="#90a4ae">
-              <animateTransform attributeName="transform" type="rotate" from="0 130 82" to="360 130 82" dur="0.5s" repeatCount="indefinite"/>
-            </circle>
-          </g>
-        </g>
-
-        <!-- Gota de agua cayendo -->
-        <g>
-          <ellipse cx="85" cy="72" rx="2.5" ry="4" fill="#29b6f6">
-            <animate attributeName="cy" values="72;90;72" dur="2s" repeatCount="indefinite"/>
-            <animate attributeName="opacity" values="1;0;1" dur="2s" repeatCount="indefinite"/>
-          </ellipse>
-        </g>
-
-        <!-- Línea de camino -->
-        <line x1="0" y1="92" x2="200" y2="92" stroke="#455a64" stroke-width="1" opacity="0.4"/>
-        <line x1="10" y1="92" x2="25" y2="92" stroke="#fff" stroke-width="1.5" opacity="0.6">
-          <animate attributeName="x1" values="10;30;10" dur="0.5s" repeatCount="indefinite"/>
-          <animate attributeName="x2" values="25;45;25" dur="0.5s" repeatCount="indefinite"/>
-        </line>
-        <line x1="50" y1="92" x2="65" y2="92" stroke="#fff" stroke-width="1.5" opacity="0.6">
-          <animate attributeName="x1" values="50;70;50" dur="0.5s" repeatCount="indefinite" begin="0.1s"/>
-          <animate attributeName="x2" values="65;85;65" dur="0.5s" repeatCount="indefinite" begin="0.1s"/>
-        </line>
       </svg>
     </div>
 
-    <!-- Nombre con efecto de agua -->
-    <div style="font-size:2.2em; font-weight:900; letter-spacing:3px; margin-bottom:2px;
-                background:linear-gradient(90deg, #4fc3f7, #29b6f6, #4fc3f7);
-                -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-                background-clip:text; text-shadow:0 2px 10px rgba(79,195,247,0.3);">
-      AGUATERO
+    <div class="login-titulo">AGUA<span>TERO</span></div>
+    <div class="login-subtitulo">Gestión de repartos de agua</div>
+
+    <label class="login-label">Correo electrónico</label>
+    <div class="login-input-wrap">
+      <span class="login-input-icon">✉️</span>
+      <input type="email" id="loginEmail" class="login-input" placeholder="correo@ejemplo.com" autocomplete="username">
     </div>
-    <div style="font-size:0.85em; color:#b3e0f2; letter-spacing:1px;">Gestión de reparto de agua</div>
+
+    <label class="login-label">Contraseña</label>
+    <div class="login-input-wrap">
+      <span class="login-input-icon">🔒</span>
+      <input type="password" id="loginPassword" class="login-input" placeholder="Tu contraseña" autocomplete="current-password" style="padding-right:44px;">
+      <button type="button" id="btnTogglePassword" class="login-toggle-eye" onclick="toggleMostrarPassword()" aria-label="Mostrar u ocultar contraseña">👁️</button>
+    </div>
+
+    <div class="login-fila-opciones">
+      <label class="login-check-label">
+        <input type="checkbox" id="chkRecordarme" checked> Recordarme
+      </label>
+      <a href="#" class="login-link-chico" onclick="recuperarPassword(); return false;">¿Olvidaste tu contraseña?</a>
+    </div>
+
+    <p id="loginError" style="color:#ffb3a7; font-size:0.85em; display:none;"></p>
+    <p id="loginInfo" style="color:#9ee8b8; font-size:0.85em; display:none;"></p>
+
+    <button class="btn naranja login-btn-ingresar" id="btnLoginAccion" onclick="accionLogin()">Ingresar</button>
+    <p style="font-size:0.78em; color:#cfe3ee; text-align:center; margin-top:12px;">¿No tenés cuenta? Pedile usuario y contraseña a quien te dio esta app.</p>
+
+    <p class="login-terminos">Al ingresar, aceptás los <a href="#" onclick="abrirModal('modalTerminos'); return false;">Términos</a> y la <a href="#" onclick="abrirModal('modalTerminos'); return false;">Política de Privacidad</a>.</p>
   </div>
 
-  <div style="background:white; border-radius:16px; padding:20px; width:100%; max-width:360px; box-sizing:border-box;">
-    <label>Email</label>
-    <input type="email" id="loginEmail" placeholder="tu@email.com" autocomplete="username">
-    <label>Contraseña</label>
-    <input type="password" id="loginPassword" placeholder="Tu contraseña" autocomplete="current-password">
-
-    <p id="loginError" style="color:#c0392b; font-size:0.85em; display:none;"></p>
-    <p id="loginInfo" style="color:#2e8b57; font-size:0.85em; display:none;"></p>
-
-    <button class="btn naranja" id="btnLoginAccion" style="width:100%; margin-top:8px;" onclick="accionLogin()">Ingresar</button>
-    <button class="btn outline" id="btnRecuperarPass" style="width:100%; margin-top:6px; font-size:0.82em;" onclick="recuperarPassword()">¿Olvidaste tu contraseña?</button>
-    <p style="font-size:0.78em; color:#666; text-align:center; margin-top:10px;">¿No tenés cuenta? Pedile usuario y contraseña a quien te dio esta app.</p>
-  </div>
-
-  <p style="color:#cfe3ee; font-size:0.75em; margin-top:18px; text-align:center;">Necesitás conexión a internet solo para iniciar sesión.<br>Una vez adentro, podés trabajar sin internet.</p>
-  <p style="color:#cfe3ee; font-size:0.75em; margin-top:6px; text-align:center;">Al ingresar aceptás los <a href="#" style="color:white; text-decoration:underline;" onclick="abrirModal('modalTerminos'); return false;">Términos y la Política de Privacidad</a>.</p>
+  <p style="color:#cfe3ee; font-size:0.75em; margin-top:18px; text-align:center; position:relative; z-index:1;">Necesitás conexión a internet solo para iniciar sesión.<br>Una vez adentro, podés trabajar sin internet.</p>
 </div>
 
 <!-- MODAL TERMINOS Y CONDICIONES (accesible con o sin sesión iniciada) -->
