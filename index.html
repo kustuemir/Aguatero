@@ -642,19 +642,34 @@
 <!-- PANTALLA DE SUSCRIPCION BLOQUEADA -->
 <div id="pantallaSuscripcionBloqueada" style="display:none; position:fixed; inset:0; z-index:200; background:linear-gradient(180deg, #0b3d5c, #14232f); flex-direction:column; justify-content:center; align-items:center; padding:24px; box-sizing:border-box; overflow-y:auto;">
   <div style="font-size:2.8em;">🔒</div>
-  <div style="font-size:1.3em; font-weight:bold; color:white; text-align:center; margin:8px 0;">Membresía vencida</div>
+  <div style="font-size:1.3em; font-weight:bold; color:white; text-align:center; margin:8px 0;">Elegí tu plan</div>
   <p style="color:#cfe3ee; font-size:0.9em; text-align:center; max-width:340px; white-space:pre-line;" id="textoSuscripcionBloqueada"></p>
 
-  <div style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:16px; margin-top:12px; max-width:320px; width:100%; text-align:center;">
-    <div style="color:#cfe3ee; font-size:0.8em;">Membresía mensual</div>
-    <div style="color:white; font-size:1.8em; font-weight:bold;">$9.900</div>
-    <div style="color:#cfe3ee; font-size:0.75em;">pesos argentinos / mes</div>
+  <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px; width:100%; max-width:320px;">
+
+    <div style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:16px; text-align:center;">
+      <div style="color:white; font-size:1.05em; font-weight:bold;">Plan Básico</div>
+      <div style="color:white; font-size:1.7em; font-weight:bold; margin-top:4px;">$14.999<span style="font-size:0.45em; font-weight:normal;">/mes</span></div>
+      <div style="color:#cfe3ee; font-size:0.78em; margin-top:8px; line-height:1.5;">
+        1 sucursal<br>Repartos ilimitados<br>2 usuarios
+      </div>
+      <button class="btn naranja" id="btnSuscribir_basico" onclick="suscribirse('basico')" style="width:100%; margin-top:12px;">💳 Suscribirme - $14.999/mes</button>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.14); border:1px solid #e08a3e; border-radius:12px; padding:16px; text-align:center; position:relative;">
+      <div style="position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:#e08a3e; color:white; font-size:0.68em; padding:2px 10px; border-radius:10px; font-weight:bold;">RECOMENDADO</div>
+      <div style="color:white; font-size:1.05em; font-weight:bold; margin-top:4px;">Plan Pro</div>
+      <div style="color:white; font-size:1.7em; font-weight:bold; margin-top:4px;">$29.999<span style="font-size:0.45em; font-weight:normal;">/mes</span></div>
+      <div style="color:#cfe3ee; font-size:0.78em; margin-top:8px; line-height:1.5;">
+        3 sucursales<br>Todo ilimitado<br>10 usuarios
+      </div>
+      <button class="btn naranja" id="btnSuscribir_pro" onclick="suscribirse('pro')" style="width:100%; margin-top:12px;">💳 Suscribirme - $29.999/mes</button>
+    </div>
+
   </div>
 
-  <a class="btn naranja" id="linkPagoSuscripcion" href="#" style="text-decoration:none; text-align:center; margin-top:14px; max-width:300px; width:100%;">💳 Pagar $9.900</a>
-
-  <div style="color:#cfe3ee; font-size:0.78em; text-align:center; max-width:300px; margin-top:12px;">
-    💡 Después de pagar, comunicate con el administrador para que active tu membresía.
+  <div style="color:#cfe3ee; font-size:0.78em; text-align:center; max-width:300px; margin-top:14px;">
+    💡 Te lleva al checkout seguro de Mercado Pago. Se activa solo apenas se confirma el pago.
   </div>
 
   <button class="btn outline" style="margin-top:14px; max-width:300px; width:100%; background:transparent; color:white; border-color:white;" onclick="cerrarSesion(); document.getElementById('pantallaSuscripcionBloqueada').style.display='none';">🚪 Cerrar sesión</button>

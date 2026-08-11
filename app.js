@@ -404,33 +404,38 @@ function actualizarNombreMostrado(){
   if(el) el.textContent = usuarioActual.nombreMarca || usuarioActual.email;
 }
 
-// ---------- CHEQUEO DE SUSCRIPCION ----------
-const PRECIO_MEMBRESIA = 9900; // $9.900 ARS por mes
+// ---------- CHEQUEO DE SUSCRIPCION (Mercado Pago automático) ----------
+const FUNCIONES_URL = 'https://lyra-5c6de91a.base44.app/functions';
+
+const PLANES_SUSCRIPCION = {
+  basico: { nombre: 'Plan Básico', precio: 14999 },
+  pro: { nombre: 'Plan Pro', precio: 29999 }
+};
 
 async function verificarSuscripcion(){
   try{
-    const { data, error } = await sb.from('suscripciones').select('*').eq('user_id', usuarioActual.id).maybeSingle();
+    const { data, error } = await sb.from('subscriptions').select('*').eq('user_id', usuarioActual.id).maybeSingle();
     if(error || !data){
       // Sin fila = período de prueba (trial). Mostrar aviso de trial
       mostrarEstadoMembresia(null);
       return;
     }
 
-    const vencida = data.estado === 'vencida' || data.estado === 'cancelada' ||
-      (data.fecha_vencimiento && new Date(data.fecha_vencimiento) < new Date());
+    const activa = data.status === 'active' &&
+      (!data.current_period_end || new Date(data.current_period_end) > new Date());
 
-    const diasRestantes = data.fecha_vencimiento
-      ? Math.ceil((new Date(data.fecha_vencimiento) - new Date()) / 86400000)
+    const diasRestantes = data.current_period_end
+      ? Math.ceil((new Date(data.current_period_end) - new Date()) / 86400000)
       : null;
 
-    if(vencida){
+    if(!activa){
       // BLOQUEO TOTAL
-      var textoBloqueo = 'Tu membresía' + (data.fecha_vencimiento ? ' venció el ' + isoAFechaLabel(data.fecha_vencimiento) : ' no está activa') + '.\n\n';
-      textoBloqueo += '💰 Precio mensual: $' + formatMoney(PRECIO_MEMBRESIA) + ' ARS\n\n';
-      textoBloqueo += 'Para reactivar tu cuenta, hacé el pago y comunicate con el administrador.';
+      var textoBloqueo = data.current_period_end
+        ? 'Tu suscripción venció el ' + isoAFechaLabel(data.current_period_end.slice(0,10)) + '.\n\n'
+        : 'Todavía no tenés una suscripción activa.\n\n';
+      textoBloqueo += 'Elegí un plan para seguir usando Aguatero:';
 
       document.getElementById('textoSuscripcionBloqueada').textContent = textoBloqueo;
-      document.getElementById('linkPagoSuscripcion').href = 'https://www.mercadopago.com.ar/';
       document.getElementById('pantallaSuscripcionBloqueada').style.display = 'flex';
       mostrarEstadoMembresia(data);
     } else {
@@ -439,11 +444,33 @@ async function verificarSuscripcion(){
 
       // Aviso si vence pronto (5 días o menos)
       if(diasRestantes !== null && diasRestantes <= 5 && diasRestantes > 0){
-        mostrarToast('Tu membresía vence en ' + diasRestantes + ' días. Comunicate con el administrador para renovar.', 'error');
+        mostrarToast('Tu suscripción vence en ' + diasRestantes + ' días. Se renueva sola con Mercado Pago.', 'error');
       }
     }
   }catch(e){
     // sin internet no se puede chequear: lo dejamos seguir trabajando offline con lo que ya tiene
+  }
+}
+
+async function suscribirse(plan){
+  const btn = document.getElementById('btnSuscribir_' + plan);
+  if(btn){ btn.disabled = true; btn.textContent = 'Abriendo Mercado Pago...'; }
+  try{
+    const resp = await fetch(FUNCIONES_URL + '/createMercadoPagoSubscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: plan, user_id: usuarioActual.id, email: usuarioActual.email })
+    });
+    const data = await resp.json();
+    if(data && data.init_point){
+      window.location.href = data.init_point;
+    } else {
+      alert('No se pudo iniciar el pago. Probá de nuevo en unos segundos.');
+    }
+  }catch(e){
+    alert('No hay conexión con el servidor de pagos. Revisá tu internet e intentá de nuevo.');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = '💳 Suscribirme - $' + formatMoney(PLANES_SUSCRIPCION[plan].precio) + '/mes'; }
   }
 }
 
@@ -455,32 +482,33 @@ function mostrarEstadoMembresia(data){
     // Trial
     el.innerHTML = '<div style="background:#fff3cd; border:1px solid #ffc107; color:#856404; padding:10px; border-radius:8px; font-size:0.82em;">' +
       '<strong>🟡 Período de prueba</strong><br>' +
-      'Estás usando Aguatero sin membresía activa.<br>' +
-      'Precio: $' + formatMoney(PRECIO_MEMBRESIA) + '/mes' +
+      'Estás usando Aguatero sin suscripción activa.<br>' +
+      'Planes desde $' + formatMoney(PLANES_SUSCRIPCION.basico.precio) + '/mes' +
     '</div>';
     return;
   }
 
-  var vencida = data.estado === 'vencida' || (data.fecha_vencimiento && new Date(data.fecha_vencimiento) < new Date());
-  var diasRestantes = data.fecha_vencimiento ? Math.ceil((new Date(data.fecha_vencimiento) - new Date()) / 86400000) : null;
+  var activa = data.status === 'active' && (!data.current_period_end || new Date(data.current_period_end) > new Date());
+  var diasRestantes = data.current_period_end ? Math.ceil((new Date(data.current_period_end) - new Date()) / 86400000) : null;
+  var infoPlan = PLANES_SUSCRIPCION[data.plan] || { nombre: data.plan || 'Suscripción', precio: null };
 
-  if(vencida){
+  if(!activa){
     el.innerHTML = '<div style="background:#f8d7da; border:1px solid #c0392b; color:#721c24; padding:10px; border-radius:8px; font-size:0.82em;">' +
-      '<strong>🔴 Membresía vencida</strong><br>' +
-      (data.fecha_vencimiento ? 'Venció: ' + isoAFechaLabel(data.fecha_vencimiento) + '<br>' : '') +
-      'Precio: $' + formatMoney(PRECIO_MEMBRESIA) + '/mes<br>' +
-      'Comunicate con el administrador para reactivar.' +
+      '<strong>🔴 Suscripción vencida</strong><br>' +
+      (data.current_period_end ? 'Venció: ' + isoAFechaLabel(data.current_period_end.slice(0,10)) + '<br>' : '') +
+      'Elegí un plan para reactivar tu cuenta.' +
     '</div>';
   } else {
-    var color = diasRestantes <= 5 ? '#fff3cd' : '#d4edda';
-    var border = diasRestantes <= 5 ? '#ffc107' : '#2e8b57';
-    var textColor = diasRestantes <= 5 ? '#856404' : '#155724';
-    var icono = diasRestantes <= 5 ? '🟡' : '🟢';
+    var color = diasRestantes !== null && diasRestantes <= 5 ? '#fff3cd' : '#d4edda';
+    var border = diasRestantes !== null && diasRestantes <= 5 ? '#ffc107' : '#2e8b57';
+    var textColor = diasRestantes !== null && diasRestantes <= 5 ? '#856404' : '#155724';
+    var icono = diasRestantes !== null && diasRestantes <= 5 ? '🟡' : '🟢';
 
     el.innerHTML = '<div style="background:' + color + '; border:1px solid ' + border + '; color:' + textColor + '; padding:10px; border-radius:8px; font-size:0.82em;">' +
-      '<strong>' + icono + ' Membresía activa</strong><br>' +
-      (data.fecha_vencimiento ? 'Vence: ' + isoAFechaLabel(data.fecha_vencimiento) + ' (' + diasRestantes + ' días)<br>' : '') +
-      'Precio: $' + formatMoney(PRECIO_MEMBRESIA) + '/mes' +
+      '<strong>' + icono + ' ' + infoPlan.nombre + ' activo</strong><br>' +
+      (data.current_period_end ? 'Vence: ' + isoAFechaLabel(data.current_period_end.slice(0,10)) + (diasRestantes !== null ? ' (' + diasRestantes + ' días)' : '') + '<br>' : '') +
+      (infoPlan.precio ? 'Precio: $' + formatMoney(infoPlan.precio) + '/mes<br>' : '') +
+      '<a href="https://www.mercadopago.com.ar/subscriptions" target="_blank" rel="noopener" style="color:' + textColor + '; text-decoration:underline;">Gestionar en Mercado Pago</a>' +
     '</div>';
   }
 }
