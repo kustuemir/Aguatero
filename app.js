@@ -1672,11 +1672,14 @@ function abrirStock(id){
   document.getElementById('nombreStock').textContent = c.codigo + ' - ' + c.nombre;
   document.getElementById('saldoActualStock').textContent = '$' + formatMoney(c.saldo);
   document.getElementById('bidonesPoderStock').textContent = c.envasesPendientes;
-  document.getElementById('stkB20').value = '';
-  document.getElementById('stkB10').value = '';
-  document.getElementById('stkDisp').value = '';
-  document.getElementById('stkEnvases').value = '';
-  document.getElementById('stkEntregado').value = '';
+document.getElementById('stkB20').value = '';
+document.getElementById('stkB10').value = '';
+document.getElementById('stkDisp').value = '';
+
+document.getElementById('stkEnvB20').value = '';
+document.getElementById('stkEnvB10').value = '';
+
+document.getElementById('stkEntregado').value = '';
   actualizarPreviewStock();
   renderHistorialStock(c);
   abrirModal('modalStock');
@@ -1708,65 +1711,233 @@ function renderHistorialStock(c){
 }
 
 function actualizarPreviewStock(){
-  const c = clientes.find(x=>x.id===clienteStockId);
+  const c = clientes.find(x => x.id === clienteStockId);
   if(!c) return;
+
   const b20 = parseInt(document.getElementById('stkB20').value) || 0;
   const b10 = parseInt(document.getElementById('stkB10').value) || 0;
   const disp = parseInt(document.getElementById('stkDisp').value) || 0;
-  const total = b20*c.precio + b10*(c.precio10||0) + disp*(c.precioDisp||0);
-  document.getElementById('stkPreview').textContent = $(total);
+
+  const total =
+    b20 * c.precio +
+    b10 * (c.precio10 || 0) +
+    disp * (c.precioDisp || 0);
+
+  document.getElementById('stkPreview').textContent =
+    '$' + formatMoney(total);
 }
 
-function confirmarStock(tipo){
-  const c = clientes.find(x=>x.id===clienteStockId);
-  const b20 = parseInt(document.getElementById('stkB20').value) || 0;
-  const b10 = parseInt(document.getElementById('stkB10').value) || 0;
-  const disp = parseInt(document.getElementById('stkDisp').value) || 0;
-  const envases = parseInt(document.getElementById('stkEnvases').value) || 0;
-  if(b20 === 0 && b10 === 0 && disp === 0 && envases === 0) return;
 
-  // FIX: Advertir pero permitir venta con stock insuficiente
-  if(b20 > stockCamion.b20 || b10 > stockCamion.b10 || disp > stockCamion.disp){
-    if(!confirm(`⚠️ Stock insuficiente en la app\n\nTe quedan: ${stockCamion.b20} de 20L, ${stockCamion.b10} de 10L, ${stockCamion.disp} dispensers.\n\n¿Registrar la venta de todos modos?`)){
+function confirmarStock(tipo){
+
+  const c = clientes.find(x => x.id === clienteStockId);
+  if(!c) return;
+
+
+  // ==========================================
+  // PRODUCTOS VENDIDOS
+  // ==========================================
+
+  const b20 =
+    parseInt(document.getElementById('stkB20').value) || 0;
+
+  const b10 =
+    parseInt(document.getElementById('stkB10').value) || 0;
+
+  const disp =
+    parseInt(document.getElementById('stkDisp').value) || 0;
+
+
+  // ==========================================
+  // ENVASES RECIBIDOS
+  // SOLO 20L Y 10-12L
+  //
+  // EL DISPENSER NO GENERA DEVOLUCIÓN
+  // ==========================================
+
+  const envB20 =
+    parseInt(document.getElementById('stkEnvB20').value) || 0;
+
+  const envB10 =
+    parseInt(document.getElementById('stkEnvB10').value) || 0;
+
+  // Total de envases recibidos
+  const envases = envB20 + envB10;
+
+
+  // ==========================================
+  // NO HAY VENTA NI ENVASES RECIBIDOS
+  // ==========================================
+
+  if(
+    b20 === 0 &&
+    b10 === 0 &&
+    disp === 0 &&
+    envases === 0
+  ){
+    return;
+  }
+
+
+  // ==========================================
+  // CONTROL DE STOCK
+  // ==========================================
+
+  if(
+    b20 > stockCamion.b20 ||
+    b10 > stockCamion.b10 ||
+    disp > stockCamion.disp
+  ){
+
+    if(!confirm(
+      `⚠️ Stock insuficiente en la app\n\n` +
+      `Te quedan:\n` +
+      `${stockCamion.b20} de 20L\n` +
+      `${stockCamion.b10} de 10L\n` +
+      `${stockCamion.disp} dispensers.\n\n` +
+      `¿Registrar la venta de todos modos?`
+    )){
       return;
     }
   }
 
-  const costo = b20*c.precio + b10*(c.precio10||0) + disp*(c.precioDisp||0);
-  const bidones = b20 + b10 + disp; // total de envases llenos entregados (para stock de envases pendientes)
+
+  // ==========================================
+  // CALCULAR TOTAL
+  // ==========================================
+
+  const costo =
+    b20 * c.precio +
+    b10 * (c.precio10 || 0) +
+    disp * (c.precioDisp || 0);
+
+
+  // ==========================================
+  // BIDONES QUE GENERAN ENVASE PENDIENTE
+  //
+  // SOLO 20L + 10-12L
+  // EL DISPENSER NO CUENTA
+  // ==========================================
+
+  const bidones = b20 + b10;
+
+
+  // ==========================================
+  // DINERO PAGADO
+  // ==========================================
+
   let montoPagado = 0;
-  if(tipo === 'efectivo' || tipo === 'transferencia'){
+
+  if(
+    tipo === 'efectivo' ||
+    tipo === 'transferencia'
+  ){
+
     montoPagado = costo;
+
   } else if(tipo === 'entregado'){
-    montoPagado = parseFloat(document.getElementById('stkEntregado').value) || 0;
+
+    montoPagado =
+      parseFloat(
+        document.getElementById('stkEntregado').value
+      ) || 0;
   }
 
+
+  // ==========================================
+  // CREAR MOVIMIENTO
+  // ==========================================
+
   const ahora = new Date();
+
   const entry = {
+
     id: generarId(),
+
     tipo: 'compra',
+
     fechaISO: todayISO(),
-    hora: ahora.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
-    b20, b10, disp, bidones, envases, costo,
+
+    hora: ahora.toLocaleTimeString(
+      'es-AR',
+      {
+        hour: '2-digit',
+        minute: '2-digit'
+      }
+    ),
+
+    // Productos vendidos
+    b20: b20,
+    b10: b10,
+    disp: disp,
+
+    // Envases recibidos separados por tipo
+    envB20: envB20,
+    envB10: envB10,
+
+    // Total de envases recibidos
+    envases: envases,
+
+    // Solo bidones generan envase pendiente
+    bidones: bidones,
+
+    costo: costo,
+
     formaPago: tipo,
-    montoPagado,
-    transferenciaConfirmada: (tipo === 'transferencia_pendiente') ? false : undefined
+
+    montoPagado: montoPagado,
+
+    transferenciaConfirmada:
+      tipo === 'transferencia_pendiente'
+        ? false
+        : undefined
   };
+
+
+  // ==========================================
+  // GUARDAR MOVIMIENTO
+  // ==========================================
+
   c.historial.push(entry);
+
   aplicarEfectoMovimiento(c, entry);
+
   syncMovimiento(entry, c.id);
+
   syncCliente(c);
 
-  stockCamion.b20 = Math.max(0, stockCamion.b20 - b20);
-  stockCamion.b10 = Math.max(0, stockCamion.b10 - b10);
-  stockCamion.disp = Math.max(0, stockCamion.disp - disp);
+
+  // ==========================================
+  // ACTUALIZAR STOCK DEL CAMIÓN
+  // ==========================================
+
+  stockCamion.b20 =
+    Math.max(0, stockCamion.b20 - b20);
+
+  stockCamion.b10 =
+    Math.max(0, stockCamion.b10 - b10);
+
+  stockCamion.disp =
+    Math.max(0, stockCamion.disp - disp);
+
+
   syncStock();
   syncResumenDiario();
 
+
+  // ==========================================
+  // MARCAR CLIENTE COMO VISITADO
+  // ==========================================
+
   visitasHoy.add(c.id);
-  // FIX: No mover al final del dia - preserva el orden de la ruta
+
+
+  // ==========================================
+  // CERRAR MODAL Y ACTUALIZAR PANTALLA
+  // ==========================================
 
   cerrarModal('modalStock');
+
   renderTodo();
 }
 
@@ -2156,6 +2327,9 @@ function guardarEdicionMovimiento(){
 // ---------- ANULAR VENTA (deshacer del todo) ----------
 function confirmarAnularMovimiento(){
   if(!movimientoEditando) return;
+
+  // No obligamos al usuario a cerrar primero "Corregir movimiento".
+  cerrarModal('modalEditarMov');
   abrirModal('modalConfirmarAnular');
 }
 
@@ -2315,23 +2489,39 @@ function cargarStockInicial(){
   const b20 = parseInt(document.getElementById('inputStockB20').value);
   const b10 = parseInt(document.getElementById('inputStockB10').value);
   const disp = parseInt(document.getElementById('inputStockDisp').value);
+
   if(!isNaN(b20)) stockCamion.b20 = b20;
   if(!isNaN(b10)) stockCamion.b10 = b10;
   if(!isNaN(disp)) stockCamion.disp = disp;
+
   document.getElementById('inputStockB20').value = '';
   document.getElementById('inputStockB10').value = '';
   document.getElementById('inputStockDisp').value = '';
+
+  // El stock inicial quedó cargado. A partir de acá se comienza el reparto.
+  modoTodosClientes = false;
+
   renderStockCamion();
   guardarEstado();
   syncStock();
+
+  mostrarToast(
+    '✅ Stock guardado correctamente. Se cargaron los bidones y dispensers.',
+    'success'
+  );
+
+  // Mostrar automáticamente la ruta correspondiente al día seleccionado.
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const vistaRuta = document.getElementById('view-porVisitar');
+  if(vistaRuta) vistaRuta.classList.add('active');
+
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const tabRuta = document.querySelector('.tab-btn[data-tab="porVisitar"]');
+  if(tabRuta) tabRuta.classList.add('active');
+
+  renderTodo();
 }
 
-function ajustarStockManual(tipo, delta){
-  stockCamion[tipo] = Math.max(0, (stockCamion[tipo]||0) + delta);
-  renderStockCamion();
-  guardarEstado();
-  syncStock();
-}
 
 // ---------- RESPALDO DE DATOS ----------
 // ---------- EXPORTAR A EXCEL (CSV, se abre directo en Excel/Sheets) ----------
@@ -2533,6 +2723,38 @@ function tarjetaCliente(c, i, mostrarBotonesStock){
   `;
 }
 
+// ---------- TARJETA DE CLIENTE AL FINALIZAR EL REPARTO ----------
+function tarjetaClienteCierre(c, i){
+  const claseDeuda = tieneDeuda(c) ? 'tiene-deuda' : 'al-dia';
+  return `
+    <div class="card cliente-cierre ${claseDeuda}">
+      <div onclick="abrirDetalle('${c.id}')">
+        <h3>${i != null ? (i + 1) + '. ' : ''}${c.codigo} - ${escapeHtml(c.nombre)}</h3>
+        <div class="row"><span>${escapeHtml(c.direccion || 'Sin dirección')}</span></div>
+        <div class="row">
+          <span>Deuda:</span>
+          <span class="${tieneDeuda(c) ? 'deuda' : 'saldo-ok'}">${$(c.saldo)}</span>
+        </div>
+        <div class="row">
+          <span>Envases que debe:</span>
+          <span>${c.envasesPendientes}</span>
+        </div>
+      </div>
+
+      <div class="btn-row cliente-cierre-actions">
+        <button class="btn chico" onclick="abrirStock('${c.id}')">📦 Stock</button>
+        ${c.direccion ? `<a class="btn chico outline cliente-maps-btn"
+          href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.direccion)}"
+          target="_blank" rel="noopener">📍 Cómo llegar</a>` : ''}
+      </div>
+
+      <div class="cliente-cierre-dias">
+        📅 ${(c.dias || []).length ? c.dias.join(', ') : 'Sin día asignado'}
+      </div>
+    </div>
+  `;
+}
+
 // ---------- RENDER POR VISITAR (los que faltan del reparto de hoy) ----------
 function renderPorVisitar(){
   const cont = document.getElementById('listaPorVisitar');
@@ -2569,33 +2791,24 @@ function renderPorVisitar(){
     return;
   }
 
-  // --- MODO TODOS LOS CLIENTES (al abrir la app, antes de cargar reparto) ---
+  // --- MODO TODOS LOS CLIENTES / REPARTO CERRADO ---
   if(modoTodosClientes){
-    document.getElementById('tituloDiaHoy').textContent = '📋 Todos los clientes (' + clientes.length + ')';
-    const filtrados = clientes
-      .filter(c=>pasaFiltro(c))
-      .sort((a,b)=> a.nombre.localeCompare(b.nombre));
+    document.getElementById('tituloDiaHoy').textContent =
+      '📋 Todos los clientes (' + clientes.length + ')';
 
-    if(filtrados.length===0){
-      cont.innerHTML = '<div class="empty-msg">No hay clientes cargados. Tocá ➕👤 para agregar el primero.</div>';
+    const filtrados = clientes
+      .filter(c => pasaFiltro(c))
+      .sort((a,b) => a.nombre.localeCompare(b.nombre));
+
+    if(filtrados.length === 0){
+      cont.innerHTML =
+        '<div class="empty-msg">No hay clientes cargados. Tocá ➕👤 para agregar el primero.</div>';
       return;
     }
-    cont.innerHTML = filtrados.map((c,i)=>{
-      const diasTxt = (c.dias||[]).length ? c.dias.join(', ') : 'Sin día';
-      const visitadoHoy = visitasHoy.has(c.id);
-      const claseDeuda = tieneDeuda(c) ? 'tiene-deuda' : 'al-dia';
-      return `
-        <div class="card ${claseDeuda}">
-          <div onclick="abrirDetalle('${c.id}')">
-            <h3>${(i+1)}. ${c.codigo} - ${escapeHtml(c.nombre)} ${visitadoHoy ? '<span class="visitado-tag">Visitado</span>' : ''}</h3>
-            <div class="row"><span>${escapeHtml(c.direccion || 'Sin dirección')}</span></div>
-            <div class="row"><span>Deuda:</span><span class="${tieneDeuda(c)?'deuda':'saldo-ok'}">${$(c.saldo)}</span></div>
-            <div class="row"><span>Envases que debe:</span><span>${c.envasesPendientes}</span></div>
-          </div>
-          <div style="font-size:0.72em;color:#888;padding:0 12px 4px;">📅 ${diasTxt}</div>
-        </div>
-      `;
-    }).join('');
+
+    cont.innerHTML = filtrados
+      .map((c,i) => tarjetaClienteCierre(c,i))
+      .join('');
     return;
   }
   // --- MODO REPARTO (después de cargar reparto del día) ---
@@ -2752,21 +2965,23 @@ function renderEstadisticas(){
 
 // ---------- CERRAR REPARTO DEL DIA ----------
 function confirmarCerrarReparto(){
-  var resumen = 'CERRAR REPARTO DEL DÍA\n\n';
-  resumen += 'Visitaste: ' + visitasHoy.size + ' clientes\n';
-  resumen += 'Vendido: $' + formatMoney(ventaHoy) + '\n';
-  resumen += 'Cobrado: $' + formatMoney(cobradoHoy) + '\n';
-  resumen += '  • Efectivo: $' + formatMoney(efectivoHoy) + '\n';
-  resumen += '  • Transferencia: $' + formatMoney(transferenciaHoy) + '\n';
-  resumen += 'Deuda generada: $' + formatMoney(deudaGeneradaHoy) + '\n\n';
-  resumen += 'Bidones 20L: ' + b20VendidosHoy + '\n';
-  resumen += 'Bidones 10-12L: ' + b10VendidosHoy + '\n';
-  resumen += 'Dispensers: ' + dispVendidosHoy + '\n';
-  resumen += 'Sobrante en camión: ' + stockCamion.b20 + ' / ' + stockCamion.b10 + ' / ' + stockCamion.disp + '\n\n';
-  resumen += '¿Confirmás que querés cerrar el reparto?\nSe descarga un respaldo y el stock vuelve a cero.';
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if(el) el.textContent = value;
+  };
 
-  if(!confirm(resumen)) return;
-  cerrarRepartoDelDia();
+  set('cierreVisitas', visitasHoy.size);
+  set('cierreVenta', '$' + formatMoney(ventaHoy));
+  set('cierreCobrado', '$' + formatMoney(cobradoHoy));
+  set('cierreEfectivo', '$' + formatMoney(efectivoHoy));
+  set('cierreTransferencia', '$' + formatMoney(transferenciaHoy));
+  set('cierreDeuda', '$' + formatMoney(deudaGeneradaHoy));
+  set('cierreB20', b20VendidosHoy);
+  set('cierreB10', b10VendidosHoy);
+  set('cierreDisp', dispVendidosHoy);
+  set('cierreSobrante', stockCamion.b20 + ' / ' + stockCamion.b10 + ' / ' + stockCamion.disp);
+
+  abrirModal('modalCerrarReparto');
 }
 
 function cerrarRepartoDelDia(){
@@ -2805,11 +3020,20 @@ function cerrarRepartoDelDia(){
 
   // Recién ACA volvemos a "todos los clientes": el reparto quedó cerrado a propósito.
   modoTodosClientes = true;
+  searchTerm = '';
+
+  // Después del cierre mostramos la pantalla principal con todos los clientes.
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const vistaClientes = document.getElementById('view-porVisitar');
+  if(vistaClientes) vistaClientes.classList.add('active');
+
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const tabClientes = document.querySelector('.tab-btn[data-tab="porVisitar"]');
+  if(tabClientes) tabClientes.classList.add('active');
 
   guardarEstado();
-  renderEstadisticas();
   renderTodo();
-  mostrarToast('Reparto cerrado - respaldo descargado', 'success');
+  mostrarToast('✅ Reparto cerrado. Podés revisar todos los clientes antes de cargar el próximo día.', 'success');
 }
 
 // ---------- REPORTE SEMANAL ----------

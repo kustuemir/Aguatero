@@ -349,11 +349,6 @@
       <input type="number" inputmode="numeric" id="inputSumarB10" placeholder="Ej: 2" style="margin:0;">
       <button class="btn chico" onclick="sumarStock('b10')">＋ Sumar</button>
     </div>
-    <label>Corrección manual (se rompió, se perdió, etc.)</label>
-    <div class="btn-row">
-      <button class="btn chico outline" onclick="ajustarStockManual('b10',-1)">－ 1</button>
-      <button class="btn chico outline" onclick="ajustarStockManual('b10',1)">＋ 1</button>
-    </div>
   </div>
 
   <div class="card">
@@ -366,17 +361,11 @@
       <input type="number" inputmode="numeric" id="inputSumarDisp" placeholder="Ej: 1" style="margin:0;">
       <button class="btn chico" onclick="sumarStock('disp')">＋ Sumar</button>
     </div>
-    <label>Corrección manual (se rompió, se perdió, etc.)</label>
-    <div class="btn-row">
-      <button class="btn chico outline" onclick="ajustarStockManual('disp',-1)">－ 1</button>
-      <button class="btn chico outline" onclick="ajustarStockManual('disp',1)">＋ 1</button>
-    </div>
   </div>
 
   <button class="btn naranja" onclick="cargarStockInicial()">Guardar stock inicial (reemplaza)</button>
   <p style="font-size:0.78em; color:#666; margin-top:10px;">
     Los tres tipos (20L, 10/12L y Dispenser) se descuentan solos con cada venta, y los envases vacíos se suman solos cuando te los entregan.
-    Los botones de "Corrección manual" son solo para ajustar si se te rompió, perdió, o algo no cuadra.
   </p>
 </div>
 
@@ -438,58 +427,300 @@
 
 <!-- MODAL STOCK / REGISTRAR COMPRA -->
 <div class="modal-bg" id="modalStock">
-  <div class="modal">
+  <div class="modal modal-venta">
+
     <button class="close-x" onclick="cerrarModal('modalStock')">×</button>
+
     <h2 id="nombreStock">Cliente</h2>
-    <div class="row"><span>Saldo actual:</span><strong id="saldoActualStock">$0</strong></div>
-    <div class="row"><span>Envases que debe:</span><strong id="bidonesPoderStock">0</strong></div>
+
+    <div class="row dato-venta">
+      <span>Saldo actual:</span>
+      <strong id="saldoActualStock">$0</strong>
+    </div>
+
+    <div class="row dato-venta">
+      <span>Envases que debe:</span>
+      <strong id="bidonesPoderStock">0</strong>
+    </div>
+
     <hr>
-    <label>¿Qué le vendés?</label>
+
+    <label class="titulo-venta">¿Qué le vendés?</label>
+
     <div class="tipos-bidon">
+
+      <!-- 20 LTS VENDIDOS -->
       <div class="tipo-bidon-box">
-        <span class="tipo-bidon-label">💧 20 Lts</span>
+
+        <span class="tipo-bidon-label">
+          💧 20 Lts
+        </span>
+
         <div class="stepper">
-          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkB20',-1)">－</button>
-          <input type="number" inputmode="numeric" id="stkB20" value="" min="0" placeholder="0" oninput="actualizarPreviewStock()">
-          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkB20',1)">＋</button>
+
+          <button
+            type="button"
+            class="btn-cantidad"
+            onclick="ajustarCantidadStock('stkB20',-1)">
+            −
+          </button>
+
+          <input
+            type="number"
+            inputmode="numeric"
+            id="stkB20"
+            value=""
+            min="0"
+            placeholder="0"
+            oninput="actualizarPreviewStock()">
+
+          <button
+            type="button"
+            class="btn-cantidad"
+            onclick="ajustarCantidadStock('stkB20',1)">
+            +
+          </button>
+
         </div>
       </div>
+
+
+      <!-- 10-12 LTS VENDIDOS -->
       <div class="tipo-bidon-box">
-        <span class="tipo-bidon-label">💧 10-12 Lts</span>
+
+        <span class="tipo-bidon-label">
+          💧 10-12 Lts
+        </span>
+
         <div class="stepper">
-          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkB10',-1)">－</button>
-          <input type="number" inputmode="numeric" id="stkB10" value="" min="0" placeholder="0" oninput="actualizarPreviewStock()">
-          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkB10',1)">＋</button>
+
+          <button
+            type="button"
+            class="btn-cantidad"
+            onclick="ajustarCantidadStock('stkB10',-1)">
+            −
+          </button>
+
+          <input
+            type="number"
+            inputmode="numeric"
+            id="stkB10"
+            value=""
+            min="0"
+            placeholder="0"
+            oninput="actualizarPreviewStock()">
+
+          <button
+            type="button"
+            class="btn-cantidad"
+            onclick="ajustarCantidadStock('stkB10',1)">
+            +
+          </button>
+
         </div>
       </div>
+
+
+      <!-- DISPENSER VENDIDOS -->
       <div class="tipo-bidon-box">
-        <span class="tipo-bidon-label">🧊 Dispenser</span>
+
+        <span class="tipo-bidon-label">
+          🧊 Dispenser
+        </span>
+
         <div class="stepper">
-          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkDisp',-1)">－</button>
-          <input type="number" inputmode="numeric" id="stkDisp" value="" min="0" placeholder="0" oninput="actualizarPreviewStock()">
-          <button type="button" class="btn chico outline" onclick="ajustarCantidadStock('stkDisp',1)">＋</button>
+
+          <button
+            type="button"
+            class="btn-cantidad"
+            onclick="ajustarCantidadStock('stkDisp',-1)">
+            −
+          </button>
+
+          <input
+            type="number"
+            inputmode="numeric"
+            id="stkDisp"
+            value=""
+            min="0"
+            placeholder="0"
+            oninput="actualizarPreviewStock()">
+
+          <button
+            type="button"
+            class="btn-cantidad"
+            onclick="ajustarCantidadStock('stkDisp',1)">
+            +
+          </button>
+
         </div>
       </div>
+
     </div>
-    <label>Envases vacíos que devuelve</label>
-    <input type="number" inputmode="numeric" id="stkEnvases" value="" min="0" placeholder="0">
-    <div class="preview-box">Total de esta compra: <strong id="stkPreview">$0</strong></div>
 
-    <div class="btn-row">
-      <button class="btn verde" onclick="confirmarStock('efectivo')">Efectivo</button>
-      <button class="btn" onclick="confirmarStock('transferencia')">Transferencia ya recibida</button>
+
+    <!-- ==========================================
+         ENVASES RECIBIDOS
+         SOLAMENTE 20L Y 10-12L
+         ========================================== -->
+
+    <label class="titulo-venta envases-titulo">
+      Envases recibidos
+    </label>
+
+    <div class="tipos-bidon envases-recibidos">
+
+      <!-- 20 LTS RECIBIDOS -->
+      <div class="tipo-bidon-box">
+
+        <span class="tipo-bidon-label">
+          💧 20 Lts
+        </span>
+
+        <div class="stepper">
+
+          <button
+            type="button"
+            class="btn-cantidad"
+            onclick="ajustarCantidadStock('stkEnvB20',-1)">
+            −
+          </button>
+
+          <input
+            type="number"
+            inputmode="numeric"
+            id="stkEnvB20"
+            value=""
+            min="0"
+            placeholder="0">
+
+          <button
+            type="button"
+            class="btn-cantidad"
+            onclick="ajustarCantidadStock('stkEnvB20',1)">
+            +
+          </button>
+
+        </div>
+      </div>
+
+
+      <!-- 10-12 LTS RECIBIDOS -->
+      <div class="tipo-bidon-box">
+
+        <span class="tipo-bidon-label">
+          💧 10-12 Lts
+        </span>
+
+        <div class="stepper">
+
+          <button
+            type="button"
+            class="btn-cantidad"
+            onclick="ajustarCantidadStock('stkEnvB10',-1)">
+            −
+          </button>
+
+          <input
+            type="number"
+            inputmode="numeric"
+            id="stkEnvB10"
+            value=""
+            min="0"
+            placeholder="0">
+
+          <button
+            type="button"
+            class="btn-cantidad"
+            onclick="ajustarCantidadStock('stkEnvB10',1)">
+            +
+          </button>
+
+        </div>
+      </div>
+
     </div>
-    <button class="btn outline" style="margin-top:6px;" onclick="confirmarStock('transferencia_pendiente')">🕒 Transferencia pendiente</button>
 
-    <label style="margin-top:10px;">¿Cuánto te entrega ahora? (parcial o fiado)</label>
-    <input type="number" inputmode="numeric" id="stkEntregado" placeholder="0">
-    <button class="btn naranja" onclick="confirmarStock('entregado')">Registrar lo entregado</button>
 
-    <button class="btn outline" onclick="marcarNoCompra()">No compra</button>
+    <!-- TOTAL -->
+    <div class="total-venta">
+      Total de esta compra:
+      <strong id="stkPreview">$0</strong>
+    </div>
+
+
+    <!-- FORMAS DE PAGO -->
+
+    <div class="btn-row botones-pago">
+
+      <button
+        class="btn btn-efectivo"
+        onclick="confirmarStock('efectivo')">
+        Efectivo
+      </button>
+
+      <button
+        class="btn btn-transferencia"
+        onclick="confirmarStock('transferencia')">
+        Transferencia ya recibida
+      </button>
+
+    </div>
+
+
+    <button
+      class="btn btn-transferencia-pendiente"
+      onclick="confirmarStock('transferencia_pendiente')">
+      🕒 Transferencia pendiente
+    </button>
+
+
+    <!-- DINERO ENTREGADO -->
+
+    <label class="titulo-venta entrega-titulo">
+      ¿Cuánto te entrega ahora? (parcial o fiado)
+    </label>
+
+    <input
+      type="number"
+      inputmode="numeric"
+      id="stkEntregado"
+      placeholder="0"
+      class="input-venta-grande">
+
+
+    <button
+      class="btn btn-registrar"
+      onclick="confirmarStock('entregado')">
+      Registrar lo entregado
+    </button>
+
+
+    <button
+      class="btn outline"
+      onclick="marcarNoCompra()">
+      No compra
+    </button>
+
 
     <hr>
-    <h3 style="margin-bottom:6px;">Historial de este cliente</h3>
-    <div id="historialStock" style="max-height:220px; overflow-y:auto; -webkit-overflow-scrolling:touch; border:1px solid #ddd; border-radius:8px; padding:8px; background:#fafafa;"></div>
+
+    <h3 style="margin-bottom:6px;">
+      Historial de este cliente
+    </h3>
+
+    <div
+      id="historialStock"
+      style="
+        max-height:220px;
+        overflow-y:auto;
+        -webkit-overflow-scrolling:touch;
+        border:1px solid #ddd;
+        border-radius:8px;
+        padding:8px;
+      ">
+    </div>
+
   </div>
 </div>
 
@@ -546,6 +777,56 @@
     <div class="btn-row" style="margin-top:10px;">
       <a class="btn verde" id="btnBoletaWhatsApp" style="text-decoration:none; text-align:center;" href="#">📲 Enviar por WhatsApp</a>
       <button class="btn outline" onclick="copiarBoleta()">📋 Copiar texto</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL CIERRE PROFESIONAL DEL REPARTO -->
+<div class="modal-bg" id="modalCerrarReparto">
+  <div class="modal modal-cierre-reparto">
+    <button class="close-x" onclick="cerrarModal('modalCerrarReparto')" aria-label="Cerrar">×</button>
+
+    <div class="cierre-header">
+      <div class="cierre-icono">🔒</div>
+      <div>
+        <h2>Cerrar reparto del día</h2>
+        <p>Revisá el resumen antes de finalizar.</p>
+      </div>
+    </div>
+
+    <div class="cierre-seccion">
+      <div class="cierre-seccion-titulo">📊 Resumen del reparto</div>
+      <div class="cierre-grid">
+        <div class="cierre-dato"><span>Clientes visitados</span><strong id="cierreVisitas">0</strong></div>
+        <div class="cierre-dato"><span>Venta total</span><strong id="cierreVenta">$0</strong></div>
+        <div class="cierre-dato"><span>Cobrado</span><strong id="cierreCobrado">$0</strong></div>
+        <div class="cierre-dato"><span>Deuda generada</span><strong id="cierreDeuda">$0</strong></div>
+      </div>
+    </div>
+
+    <div class="cierre-seccion">
+      <div class="cierre-seccion-titulo">💰 Cobros</div>
+      <div class="cierre-linea"><span>💵 Efectivo</span><strong id="cierreEfectivo">$0</strong></div>
+      <div class="cierre-linea"><span>🏦 Transferencia</span><strong id="cierreTransferencia">$0</strong></div>
+    </div>
+
+    <div class="cierre-seccion">
+      <div class="cierre-seccion-titulo">🚚 Movimiento de stock</div>
+      <div class="cierre-linea"><span>💧 Bidones 20L vendidos</span><strong id="cierreB20">0</strong></div>
+      <div class="cierre-linea"><span>💧 Bidones 10/12L vendidos</span><strong id="cierreB10">0</strong></div>
+      <div class="cierre-linea"><span>🧊 Dispensers vendidos</span><strong id="cierreDisp">0</strong></div>
+      <div class="cierre-linea cierre-sobrante"><span>📦 Sobrante en camión</span><strong id="cierreSobrante">0 / 0 / 0</strong></div>
+    </div>
+
+    <div class="cierre-aviso">
+      <strong>¿Confirmás que querés cerrar el reparto?</strong>
+      <span>Se guardará un respaldo del día y el stock restante del camión quedará registrado. Después podrás revisar todos los clientes antes de cargar el próximo día.</span>
+    </div>
+
+    <div class="btn-row cierre-botones">
+      <button class="btn outline" onclick="cerrarModal('modalCerrarReparto')">Cancelar</button>
+      <button class="btn naranja" onclick="cerrarModal('modalCerrarReparto'); cerrarRepartoDelDia();">🔒 Cerrar reparto</button>
     </div>
   </div>
 </div>

@@ -250,46 +250,376 @@ body.oscuro .dia-chip.activo {
   text-align: center;
   font-size: 1.05em;
 }
+
+/* =====================================================
+   MODAL STOCK - DISEÑO COMPACTO
+   ===================================================== */
+
 .tipos-bidon {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  margin: 8px 0;
+  margin: 6px 0 10px;
 }
-@media (max-width: 380px) {
-  .tipos-bidon { flex-direction: column; }
-}
+
 .tipo-bidon-box {
-  flex: 1;
+  width: 100%;
   background: var(--arena);
-  border-radius: 12px;
-  padding: 8px 4px;
+  border-radius: 14px;
+  padding: 6px 8px 8px;
   text-align: center;
+  box-sizing: border-box;
 }
+
 .tipo-bidon-label {
   display: block;
-  font-size: 0.78em;
-  font-weight: bold;
-  margin-bottom: 6px;
+  font-size: 0.95em;
+  font-weight: 700;
   color: var(--texto);
+  margin-bottom: 5px;
 }
+
+
+/* =====================================================
+   STEPPER COMPACTO
+   ===================================================== */
+
 .stepper {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 7px;
+  box-sizing: border-box;
 }
-.stepper input {
-  text-align: center;
-  padding: 6px 2px;
+
+.btn-cantidad {
+  width: 56px;
+  min-width: 56px;
+  height: 54px;
+
+  background: white;
+  color: var(--azul-medio);
+
+  border: 2px solid #75a9c5;
+  border-radius: 13px;
+
+  font-size: 1.55em;
+  font-weight: 400;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
   margin: 0;
-  font-weight: bold;
-  font-size: 1.1em;
-  min-width: 0;
-}
-.stepper .btn.chico {
-  padding: 6px 8px;
-  min-width: 44px;
-  min-height: 44px;
+
   flex-shrink: 0;
+}
+
+.btn-cantidad:active {
+  transform: scale(0.96);
+  background: #f0f7fa;
+}
+
+.stepper input {
+  flex: 1;
+
+  width: 100%;
+  height: 48px;
+
+  margin: 0;
+  padding: 5px;
+
+  text-align: center;
+
+  background: white;
+  color: #8b9499;
+
+  border: 1px solid #d2d2d2;
+  border-radius: 12px;
+
+  font-size: 1.35em;
+  font-weight: 600;
+
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+
+/* =====================================================
+   ENVASES RECIBIDOS
+   ===================================================== */
+
+.envases-titulo {
+  display: block;
+  text-align: center;
+
+  font-size: 0.95em;
+  font-weight: 700;
+
+  margin: 8px 0 5px;
+}
+
+.envases-recibidos {
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+
+/* =====================================================
+   TOTAL
+   ===================================================== */
+
+.total-venta {
+  text-align: center;
+
+  font-size: 1.15em;
+
+  margin: 7px 0 10px;
+
+  color: var(--texto);
+}
+
+.total-venta strong {
+  font-weight: 700;
+}
+
+
+/* =====================================================
+   BOTONES DE PAGO
+   ===================================================== */
+
+.botones-pago {
+  display: flex;
+  gap: 8px;
+  margin-top: 0;
+}
+
+.botones-pago .btn {
+  min-height: 48px;
+
+  margin: 0;
+
+  border-radius: 13px;
+
+  font-size: 0.9em;
+  font-weight: 600;
+
+  padding: 7px 5px;
+}
+
+.btn-efectivo {
+  background: #27ae60 !important;
+}
+
+.btn-transferencia {
+  background: #2479b5 !important;
+}
+
+
+/* =====================================================
+   TRANSFERENCIA PENDIENTE
+   ===================================================== */
+
+.btn-transferencia-pendiente {
+  min-height: 48px;
+
+  margin-top: 6px !important;
+
+  background: white !important;
+  color: #2479b5 !important;
+
+  border: 2px solid #75a9c5 !important;
+
+  border-radius: 13px !important;
+
+  font-size: 0.9em !important;
+}
+
+
+/* =====================================================
+   ENTREGA DE DINERO
+   ===================================================== */
+
+.entrega-titulo {
+  display: block;
+
+  text-align: center;
+
+  font-size: 0.9em;
+
+  margin-top: 7px;
+  margin-bottom: 4px;
+}
+
+.input-venta-grande {
+  width: 100%;
+  height: 50px;
+
+  margin: 0 0 7px;
+
+  padding: 7px 14px;
+
+  background: white;
+
+  border: 1px solid #d4d4d4;
+  border-radius: 13px;
+
+  font-size: 1em;
+
+  color: var(--texto);
+
+  box-sizing: border-box;
+}
+
+.input-venta-grande::placeholder {
+  color: #8b9499;
+  opacity: 0.7;
+}
+
+
+/* =====================================================
+   BOTÓN REGISTRAR
+   ===================================================== */
+
+.btn-registrar {
+  min-height: 50px;
+
+  background: var(--naranja) !important;
+
+  border-radius: 13px !important;
+
+  font-size: 1em !important;
+
+  margin-top: 2px !important;
+}
+
+
+/* =====================================================
+   MODAL DE VENTA / STOCK
+   ===================================================== */
+
+.modal-venta {
+  background: white;
+
+  /*
+     IMPORTANTE:
+     El modal padre ya tiene padding.
+     Reducimos este para evitar doble espacio.
+  */
+  padding: 8px 14px 12px;
+
+  max-height: 100vh;
+
+  overflow-y: auto;
+
+  box-sizing: border-box;
+}
+
+.modal-venta h2 {
+  font-size: 1.05em;
+
+  margin: 0 0 8px;
+
+  color: var(--texto);
+}
+
+.dato-venta {
+  font-size: 0.9em;
+
+  margin: 2px 0;
+}
+
+.dato-venta strong {
+  font-size: 1em;
+}
+
+.modal-venta hr {
+  border: none;
+
+  border-top: 2px solid #d0d0d0;
+
+  margin: 7px 0 9px;
+}
+
+.titulo-venta {
+  display: block;
+
+  font-size: 0.92em;
+
+  font-weight: 700;
+
+  color: var(--texto);
+
+  opacity: 0.8;
+
+  margin: 7px 0 5px;
+}
+
+
+/* =====================================================
+   AJUSTE PARA CELULARES
+   ===================================================== */
+
+@media (max-width: 500px) {
+
+  .modal-venta {
+    padding: 7px 14px 10px;
+  }
+
+  .tipos-bidon {
+    gap: 7px;
+    margin-bottom: 8px;
+  }
+
+  .tipo-bidon-box {
+    padding: 5px 7px 7px;
+    border-radius: 13px;
+  }
+
+  .tipo-bidon-label {
+    font-size: 0.9em;
+    margin-bottom: 4px;
+  }
+
+  .btn-cantidad {
+    width: 54px;
+    min-width: 54px;
+    height: 52px;
+
+    font-size: 1.5em;
+  }
+
+  .stepper input {
+    height: 46px;
+    font-size: 1.3em;
+  }
+
+  .envases-titulo {
+    margin-top: 7px;
+    margin-bottom: 4px;
+  }
+
+  .total-venta {
+    font-size: 1.1em;
+    margin: 6px 0 8px;
+  }
+
+  .botones-pago .btn {
+    min-height: 46px;
+  }
+
+  .btn-transferencia-pendiente {
+    min-height: 46px;
+  }
+
+  .input-venta-grande {
+    height: 48px;
+  }
+
+  .btn-registrar {
+    min-height: 50px;
+  }
 }
 .visitado-tag {
   display: inline-block;
@@ -713,3 +1043,179 @@ input::placeholder, textarea::placeholder {
   margin-top: 16px;
 }
 .login-terminos a { color: white; text-decoration: underline; }
+
+
+/* =====================================================
+   HISTORIAL DE CLIENTES - CONTRASTE EN MODO OSCURO
+   ===================================================== */
+body.oscuro .mov-item {
+  color: var(--texto) !important;
+  border-bottom-color: #2c4a5c !important;
+}
+body.oscuro .mov-item > span:first-child {
+  color: #f1f5f7 !important;
+  opacity: 1 !important;
+}
+body.oscuro .mov-item > span:last-child,
+body.oscuro .mov-item > span:last-child > span {
+  color: #c9d5dc !important;
+}
+body.oscuro .mov-item .btn.outline {
+  background: #223b4a !important;
+  color: #8fd5ef !important;
+  border-color: #4f7890 !important;
+}
+body.oscuro #historialStock {
+  background: var(--tarjeta-fondo) !important;
+  border-color: #2c4a5c !important;
+}
+body.oscuro #historialStock .mov-item > span:first-child {
+  color: #f1f5f7 !important;
+}
+body.oscuro #historialStock .mov-item > span:last-child,
+body.oscuro #historialStock .mov-item > span:last-child > span {
+  color: #c9d5dc !important;
+}
+
+/* =====================================================
+   CIERRE PROFESIONAL DEL REPARTO
+   ===================================================== */
+.modal-cierre-reparto {
+  padding: 18px;
+}
+.cierre-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dce5ea;
+}
+.cierre-icono {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--naranja);
+  color: white;
+  font-size: 1.35em;
+  flex: 0 0 44px;
+}
+.cierre-header h2 {
+  margin: 0;
+  font-size: 1.2em;
+}
+.cierre-header p {
+  margin: 3px 0 0;
+  font-size: 0.8em;
+  opacity: 0.68;
+}
+.cierre-seccion {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 13px;
+  background: #f5f7f8;
+  border: 1px solid #e0e7eb;
+}
+.cierre-seccion-titulo {
+  font-weight: 700;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+}
+.cierre-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+.cierre-dato {
+  background: white;
+  border-radius: 10px;
+  padding: 8px 10px;
+  border: 1px solid #e4e9ec;
+}
+.cierre-dato span {
+  display: block;
+  font-size: 0.72em;
+  opacity: 0.68;
+}
+.cierre-dato strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 1em;
+}
+.cierre-linea {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  font-size: 0.86em;
+}
+.cierre-linea:last-child {
+  border-bottom: none;
+}
+.cierre-sobrante {
+  margin-top: 3px;
+  font-weight: 700;
+}
+.cierre-aviso {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: rgba(224,138,62,0.12);
+  border: 1px solid rgba(224,138,62,0.35);
+}
+.cierre-aviso strong,
+.cierre-aviso span {
+  display: block;
+}
+.cierre-aviso strong {
+  margin-bottom: 4px;
+}
+.cierre-aviso span {
+  font-size: 0.78em;
+  line-height: 1.4;
+  opacity: 0.78;
+}
+.cierre-botones {
+  margin-top: 12px;
+}
+.cierre-botones .btn {
+  margin-top: 0;
+}
+
+/* =====================================================
+   TARJETAS DE CLIENTES DESPUÉS DEL CIERRE
+   ===================================================== */
+.cliente-cierre-actions {
+  align-items: stretch;
+}
+.cliente-cierre-actions .btn,
+.cliente-maps-btn {
+  margin-top: 4px !important;
+  text-decoration: none;
+  text-align: center;
+}
+.cliente-cierre-dias {
+  margin-top: 7px;
+  font-size: 0.74em;
+  opacity: 0.62;
+}
+body.oscuro .cierre-header {
+  border-bottom-color: #2c4a5c;
+}
+body.oscuro .cierre-seccion {
+  background: #182d3b;
+  border-color: #2c4a5c;
+}
+body.oscuro .cierre-dato {
+  background: #223b4a;
+  border-color: #365568;
+}
+body.oscuro .cierre-linea {
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+body.oscuro .cierre-aviso {
+  background: rgba(224,138,62,0.14);
+  border-color: rgba(224,138,62,0.38);
+}
